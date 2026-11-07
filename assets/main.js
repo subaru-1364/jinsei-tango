@@ -13,8 +13,6 @@ let sheetLines = { uncategorized: [] }; // bookId -> array of raw lines
 // index.html では "all_books", "uncategorized", または book.id
 // edit.html では "uncategorized" または book.id（1枚の巨大シートではなく本ごとのシートで管理）
 let currentBookTab = sessionStorage.getItem("kuji_book_tab") || "all_books";
-let currentFilterTab = "all"; // 「すべて/意味あり/意味なし」UIは廃止。常に全件表示
-let hasUserSelectedTab = Boolean(sessionStorage.getItem("kuji_filter_tab"));
 
 let isDrawing = false;
 let editingWordId = null;
@@ -463,8 +461,6 @@ function collectCurrentSheetLines() {
             loadEditPageIntoTextarea();
             textarea.scrollTop = textarea.scrollHeight;
         }
-        var targetTab = quickLines.some(function(l) { return !/[:：\t]/.test(l); }) ? "none" : "has";
-        sessionStorage.setItem("kuji_filter_tab", targetTab);
     }
 
     return (sheetLines[editBookId] || []).join("\n");
@@ -661,9 +657,6 @@ function addQuickWord() {
     var currentLines = sheetLines[editBookId] || [];
     sheetLines[editBookId] = currentLines.concat(validLinesToAdd);
 
-    var targetTab = wordsNeedingAutoMeaning.length > 0 ? "none" : "has";
-    sessionStorage.setItem("kuji_filter_tab", targetTab);
-
     saveAllSheets(false);
 
     if (textarea) {
@@ -687,19 +680,6 @@ function addQuickWord() {
     } else {
         showSaveFeedback(feedbackMsg);
     }
-}
-
-// 全体編集テキストエリアの最下部へ一発でカーソル＆スクロール移動
-function jumpToBulkBottom() {
-    var textarea = document.getElementById("bulk-input");
-    if (!textarea) return;
-    var val = textarea.value;
-    if (val && !val.endsWith("\n")) {
-        textarea.value = val + "\n";
-    }
-    textarea.focus();
-    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-    textarea.scrollTop = textarea.scrollHeight;
 }
 
 // ==================== ISBN / 本棚（書籍別シート）管理 ====================
@@ -1501,10 +1481,6 @@ function fetchCoverUrlForBook(book) {
     });
 }
 
-function fetchCoverUrlByIsbn(isbn) {
-    return fetchCoverUrlForBook({ isbn: isbn, title: "" });
-}
-
 function renderActiveBookMeta() {
     var metaBox = document.getElementById("active-book-meta");
     if (!metaBox) return;
@@ -1538,7 +1514,7 @@ function renderActiveBookMeta() {
         ph.setAttribute("aria-label", raw || "表紙なし");
         var displayTitle = raw;
         if (displayTitle.length > 6) {
-            displayTitle = displayTitle.slice(0, 5) + "…";
+            displayTitle = displayTitle.slice(0, 6);
         }
         ph.textContent = displayTitle || "無題";
         return ph;
@@ -1904,9 +1880,6 @@ function autoFillMeaningsForSheetWords(bookId, wordsToFetch) {
         if (shouldConfirmAutoMeaning()) {
             openMeaningConfirmQueue(foundItems, function(confirmedCount) {
                 saveAllSheets(false);
-                if (confirmedCount > 0) {
-                    sessionStorage.setItem("kuji_filter_tab", "has");
-                }
                 refreshUI();
                 showSaveFeedback(confirmedCount + " 件の意味を確認・保存しました");
             });
@@ -1918,9 +1891,6 @@ function autoFillMeaningsForSheetWords(bookId, wordsToFetch) {
                 if (ok) filledCount++;
             });
             saveAllSheets(false);
-            if (filledCount > 0) {
-                sessionStorage.setItem("kuji_filter_tab", "has");
-            }
             refreshUI();
             showSaveFeedback("辞書から " + filledCount + " 件の意味を自動登録しました");
         }
@@ -2399,16 +2369,6 @@ function updateWordCountBadge(count) {
     if (wordCountElem) {
         wordCountElem.innerText = count + " 件";
     }
-}
-
-// タブ切り替え（「意味あり」「意味なし」「すべて」）
-function setFilterTab(tab) {
-    currentFilterTab = tab;
-    hasUserSelectedTab = true;
-    sessionStorage.setItem("kuji_filter_tab", tab);
-    var searchInput = document.getElementById("search-input");
-    var keyword = searchInput ? searchInput.value : "";
-    renderWordCards(keyword);
 }
 
 function createWordCardElement(item) {

@@ -343,98 +343,6 @@ body {
     box-shadow: 3px 0 0 0 var(--accent-vermilion);
 }
 
-/* 50単語達成マイルストーン通知バナー */
-.milestone-banner {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.65rem 0.85rem;
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    border-radius: 6px;
-    margin-bottom: 0.65rem;
-    font-size: 0.82rem;
-    color: #92400e;
-    box-shadow: 0 1px 3px rgba(180, 83, 9, 0.08);
-}
-
-.milestone-icon {
-    font-size: 1.35rem;
-    line-height: 1;
-    flex-shrink: 0;
-}
-
-.milestone-text-wrap {
-    flex: 1;
-    min-width: 0;
-}
-
-.milestone-title {
-    font-weight: 700;
-    color: #78350f;
-    font-size: 0.86rem;
-    margin-bottom: 0.15rem;
-}
-
-.milestone-desc {
-    color: #92400e;
-    font-size: 0.76rem;
-    line-height: 1.35;
-}
-
-.milestone-btn-group {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    flex-shrink: 0;
-}
-
-.btn-milestone-action {
-    background: #d97706;
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
-    padding: 0.38rem 0.7rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.15s;
-}
-
-.btn-milestone-action:hover {
-    background: #b45309;
-}
-
-.btn-milestone-later {
-    background: transparent;
-    color: #b45309;
-    border: 1px solid #fcd34d;
-    border-radius: 4px;
-    padding: 0.35rem 0.6rem;
-    font-size: 0.76rem;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s;
-}
-
-.btn-milestone-later:hover {
-    background: #fef3c7;
-    border-color: #f59e0b;
-}
-
-@media (max-width: 600px) {
-    .milestone-banner {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    .milestone-btn-group {
-        width: 100%;
-        justify-content: flex-end;
-    }
-}
-
 .active-book-meta {
     display: flex;
     align-items: center;
@@ -541,25 +449,6 @@ body {
     color: #dc2626;
     border-color: #fca5a5;
     background: #fef2f2;
-}
-
-.btn-book-archive {
-    background: #f9f8f5;
-    border: 1px solid #d4d2c8;
-    border-radius: 4px;
-    color: var(--text-primary);
-    font-family: inherit;
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 0.18rem 0.55rem;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s;
-}
-
-.btn-book-archive:hover {
-    background: #eae8e0;
-    border-color: var(--text-primary);
 }
 
 .draw-title-group {
@@ -844,74 +733,6 @@ body {
     letter-spacing: 0.02em;
 }
 
-/* 意味あり / 意味なし 切り替えタブ */
-.filter-tabs {
-    display: flex;
-    gap: 0.4rem;
-    background-color: #f0eee6;
-    padding: 0.25rem;
-    border-radius: 6px;
-    border: 1px solid #dcdad0;
-}
-
-.filter-tab {
-    flex: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    padding: 0.42rem 0.5rem;
-    font-family: inherit;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-}
-
-.filter-tab:hover {
-    color: var(--text-primary);
-}
-
-.filter-tab.active {
-    background-color: #ffffff;
-    color: var(--text-primary);
-    border-color: #d4d2c8;
-    box-shadow: 0 1px 2px rgba(24, 24, 27, 0.08);
-}
-
-.tab-count {
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 0.05rem 0.38rem;
-    border-radius: 4px;
-    background-color: #e4e2d8;
-    color: var(--text-secondary);
-}
-
-.filter-tab.active .tab-count {
-    background-color: var(--primary-color);
-    color: #ffffff;
-}
-
-.word-group-title {
-    grid-column: 1 / -1;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--text-secondary);
-    padding-bottom: 0.25rem;
-    border-bottom: 1px solid #e2e0d8;
-    margin-top: 0.15rem;
-}
-
-.word-group-title-spaced {
-    margin-top: 0.75rem;
-}
-
 /* 検索ボックス */
 .search-box {
     position: relative;
@@ -1041,32 +862,6 @@ body {
     min-width: 0;
 }
 
-.word-book-tag {
-    font-family: inherit;
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background-color: #f4f3ef;
-    border: 1px solid #dcdad0;
-    border-radius: 4px;
-    padding: 0.05rem 0.38rem;
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.word-book-tag-clickable {
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.word-book-tag-clickable:hover {
-    color: var(--text-primary);
-    background-color: #e7e5de;
-    border-color: var(--text-primary);
-}
-
 .btn-card-auto {
     color: #1d4ed8;
     font-weight: 600;
@@ -1194,27 +989,6 @@ body {
     border-top: 1px dashed #e5e3dc;
 }
 
-.word-card-footer {
-    margin-top: 0.25rem;
-}
-
-.btn-add-meaning {
-    display: inline-flex;
-    align-items: center;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 0.74rem;
-    font-weight: 500;
-    padding: 0.1rem 0;
-    cursor: pointer;
-}
-
-.btn-add-meaning:hover {
-    color: var(--text-primary);
-    text-decoration: underline;
-}
-
 /* インライン編集エリア */
 .word-term-editable {
     cursor: pointer;
@@ -1312,26 +1086,6 @@ body {
 }
 
 /* 編集ページ（edit.html）スタイル */
-.header-edit-page {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.3rem;
-}
-
-.btn-back {
-    display: inline-flex;
-    align-items: center;
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    text-decoration: none;
-    padding: 0.2rem 0;
-}
-
-.btn-back:hover {
-    color: var(--text-primary);
-}
-
 .editor-card {
     display: flex;
     flex-direction: column;
@@ -1476,12 +1230,6 @@ textarea#bulk-input:focus {
     justify-content: space-between;
     gap: 0.75rem;
     flex-wrap: wrap;
-}
-
-.save-action-group {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
 }
 
 .btn-save-explicit {
@@ -1813,29 +1561,6 @@ textarea#bulk-input:focus {
     background-color: var(--primary-color);
     color: #ffffff;
     border-color: var(--primary-color);
-}
-
-
-/* 登録単語リスト：もっと見る */
-.btn-list-more {
-    display: block;
-    width: 100%;
-    margin-top: 0.6rem;
-    padding: 0.55rem 0.8rem;
-    font-family: inherit;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background-color: #f4f3ef;
-    border: 1px solid #dcdad0;
-    border-radius: 6px;
-    cursor: pointer;
-    grid-column: 1 / -1;
-}
-
-.btn-list-more:hover {
-    color: var(--text-primary);
-    background-color: #eae8e0;
 }
 
 /* ページ番号を中央寄せ */
