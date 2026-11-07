@@ -1531,11 +1531,16 @@ function renderActiveBookMeta() {
     var leftGroup = document.createElement("div");
     leftGroup.className = "book-meta-left";
 
-    function createCoverPlaceholder() {
+    function createCoverPlaceholder(bookTitle) {
         var ph = document.createElement("div");
         ph.className = "book-cover-thumb book-cover-placeholder";
-        ph.setAttribute("aria-label", "表紙なし");
-        ph.textContent = "📖";
+        var raw = (bookTitle || "").trim();
+        ph.setAttribute("aria-label", raw || "表紙なし");
+        var displayTitle = raw;
+        if (displayTitle.length > 6) {
+            displayTitle = displayTitle.slice(0, 5) + "…";
+        }
+        ph.textContent = displayTitle || "無題";
         return ph;
     }
 
@@ -1546,14 +1551,14 @@ function renderActiveBookMeta() {
         coverImg.alt = book.title;
         coverImg.src = cachedCover;
         coverImg.addEventListener("error", function() {
-            var ph = createCoverPlaceholder();
+            var ph = createCoverPlaceholder(book.title);
             if (coverImg.parentNode) {
                 coverImg.parentNode.replaceChild(ph, coverImg);
             }
         });
         leftGroup.appendChild(coverImg);
     } else {
-        var placeholder = createCoverPlaceholder();
+        var placeholder = createCoverPlaceholder(book.title);
         leftGroup.appendChild(placeholder);
 
         if (!bookCoverCache["tried_" + book.id]) {
