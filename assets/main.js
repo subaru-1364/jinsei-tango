@@ -775,7 +775,7 @@ function addBookByIsbn() {
     lookupBookByIsbnApi(isbn).then(function(info) {
         if (btn) btn.disabled = false;
         if (info && info.title) {
-            registerBookObject(isbn, info.title, info.author || "");
+            registerBookObject(isbn, info.title, info.author || "", info.cover || "");
             input.value = "";
             if (status) status.textContent = "追加完了: 『" + info.title + "』";
         } else {
@@ -1458,22 +1458,51 @@ function toggleBookTabsExpanded() {
     updateBookTabsToggle();
 }
 
-// ISBNから表紙画像URLのみを取得（openBD → Google Books の順。画像ファイル自体は保存しない）
+// ISBNおよび書名から表紙画像URLのみを取得（openBD → Google Books の順。画像ファイル自体は保存しない）
+function fetchCoverUrlForBook(book) {
+    if (!book) return Promise.resolve("");
+    var isbn = (book.isbn || "").trim();
+    var title = (book.title || "").trim();
+
+    var openBdPromise = isbn
+        ? fetch("https://api.openbd.jp/v1/get?isbn=" + encodeURIComponent(isbn))
+            .then(function(res) { return res.json(); })
+            .then(function(arr) {
+                return (Array.isArray(arr) && arr[0] && arr[0].summary && arr[0].summary.cover) || "";
+            })
+            .catch(function() { return ""; })
+        : Promise.resolve("");
+
+    return openBdPromise.then(function(openBdCover) {
+        if (openBdCover) return openBdCover;
+
+        var gbQuery = isbn ? ("isbn:" + encodeURIComponent(isbn)) : encodeURIComponent(title);
+        var gbUrl = "https://www.googleapis.com/books/v1/volumes?q=" + gbQuery + "&langRestrict=ja&maxResults=1";
+        return fetch(gbUrl)
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var il = d && d.items && d.items[0] && d.items[0].volumeInfo && d.items[0].volumeInfo.imageLinks;
+                var t = il && (il.thumbnail || il.smallThumbnail);
+                if (t) return t.replace(/^http:\/\//i, "https://");
+
+                if (isbn && title) {
+                    var titleGbUrl = "https://www.googleapis.com/books/v1/volumes?q=" + encodeURIComponent(title) + "&langRestrict=ja&maxResults=1";
+                    return fetch(titleGbUrl)
+                        .then(function(r2) { return r2.json(); })
+                        .then(function(d2) {
+                            var il2 = d2 && d2.items && d2.items[0] && d2.items[0].volumeInfo && d2.items[0].volumeInfo.imageLinks;
+                            var t2 = il2 && (il2.thumbnail || il2.smallThumbnail);
+                            return t2 ? t2.replace(/^http:\/\//i, "https://") : "";
+                        });
+                }
+                return "";
+            })
+            .catch(function() { return ""; });
+    });
+}
+
 function fetchCoverUrlByIsbn(isbn) {
-    return fetch("https://api.openbd.jp/v1/get?isbn=" + encodeURIComponent(isbn))
-        .then(function(res) { return res.json(); })
-        .then(function(arr) {
-            var c = Array.isArray(arr) && arr[0] && arr[0].summary && arr[0].summary.cover;
-            if (c) return c;
-            return fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + encodeURIComponent(isbn))
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    var il = d && d.items && d.items[0] && d.items[0].volumeInfo && d.items[0].volumeInfo.imageLinks;
-                    var t = il && (il.thumbnail || il.smallThumbnail);
-                    return t ? t.replace(/^http:\/\//i, "https://") : "";
-                });
-        })
-        .catch(function() { return ""; });
+    return fetchCoverUrlForBook({ isbn: isbn, title: "" });
 }
 
 function renderActiveBookMeta() {
@@ -1502,29 +1531,44 @@ function renderActiveBookMeta() {
     var leftGroup = document.createElement("div");
     leftGroup.className = "book-meta-left";
 
+    function createCoverPlaceholder() {
+        var ph = document.createElement("div");
+        ph.className = "book-cover-thumb book-cover-placeholder";
+        ph.setAttribute("aria-label", "表紙なし");
+        ph.textContent = "📖";
+        return ph;
+    }
+
     var cachedCover = book.cover || bookCoverCache[book.id] || (book.isbn ? bookCoverCache[book.isbn] : "");
     if (cachedCover) {
         var coverImg = document.createElement("img");
         coverImg.className = "book-cover-thumb";
         coverImg.alt = book.title;
-        coverImg.referrerPolicy = "no-referrer";
         coverImg.src = cachedCover;
         coverImg.addEventListener("error", function() {
-            coverImg.style.display = "none";
-        });
-        leftGroup.appendChild(coverImg);
-    } else if (book.isbn && !bookCoverCache["tried_" + book.id]) {
-        // ISBNはあるが表紙URL未保存の本：openBD → Google Books の順で取得し、URL文字列のみ保存（画像自体は保存しない）
-        bookCoverCache["tried_" + book.id] = "1";
-        fetchCoverUrlByIsbn(book.isbn).then(function(url) {
-            if (url) {
-                book.cover = url;
-                bookCoverCache[book.id] = url;
-                bookCoverCache[book.isbn] = url;
-                saveAllSheets(true);
-                renderActiveBookMeta();
+            var ph = createCoverPlaceholder();
+            if (coverImg.parentNode) {
+                coverImg.parentNode.replaceChild(ph, coverImg);
             }
         });
+        leftGroup.appendChild(coverImg);
+    } else {
+        var placeholder = createCoverPlaceholder();
+        leftGroup.appendChild(placeholder);
+
+        if (!bookCoverCache["tried_" + book.id]) {
+            // 表紙URL未取得の本：openBD → Google Books（ISBN・書名フォールバック）で取得
+            bookCoverCache["tried_" + book.id] = "1";
+            fetchCoverUrlForBook(book).then(function(url) {
+                if (url) {
+                    book.cover = url;
+                    bookCoverCache[book.id] = url;
+                    if (book.isbn) bookCoverCache[book.isbn] = url;
+                    saveAllSheets(true);
+                    renderActiveBookMeta();
+                }
+            });
+        }
     }
 
     var infoSpan = document.createElement("span");
