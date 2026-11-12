@@ -8,11 +8,11 @@
     <link rel="icon" type="image/png" href="./assets/icon.png?v=6">
     <link rel="apple-touch-icon" href="./assets/icon.png?v=6">
 
-    <link rel="stylesheet" href="./assets/main.css?v=68">
+    <link rel="stylesheet" href="./assets/main.css?v=73">
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js" defer></script>
-    <script src="./assets/main.js?v=68" defer></script>
+    <script src="./assets/main.js?v=73" defer></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -134,13 +134,18 @@
                     <span id="modal-step-badge" class="count-badge">意味の確認</span>
                     <h3 id="modal-word-title" class="modal-word-title"></h3>
                 </div>
-                <p class="modal-guide">辞書から以下の意味が見つかりました。この意味で登録しますか？（直接書き換えも可能です）</p>
+                <p id="modal-guide-text" class="modal-guide">辞書から以下の意味が見つかりました。この意味で登録しますか？（直接書き換えも可能です）</p>
                 <div id="modal-candidates-list" class="modal-candidates-list"></div>
-                <input type="text" id="modal-meaning-input" class="inline-edit-input" placeholder="登録する意味を入力・編集...">
+                <div class="modal-input-group">
+                    <label for="modal-meaning-input" class="modal-input-label">登録する意味（直接入力・編集できます）</label>
+                    <input type="text" id="modal-meaning-input" class="inline-edit-input" placeholder="登録する意味を入力・編集..." oninput="handleModalMeaningInput()" onkeydown="handleModalMeaningKeydown(event)">
+                </div>
                 <div class="modal-actions">
-                    <button type="button" id="modal-skip-btn" class="btn btn-sub" onclick="resolveMeaningModal('skip')">キャンセル</button>
-                    <button type="button" class="btn btn-sub btn-modal-known" onclick="resolveMeaningModal('known')">✓ 意味不要(分かる)</button>
-                    <button type="button" class="btn btn-primary" onclick="resolveMeaningModal('save')">この意味で確定</button>
+                    <div class="modal-actions-sub">
+                        <button type="button" id="modal-skip-btn" class="btn btn-sub" onclick="resolveMeaningModal('skip')">あとで（スキップ）</button>
+                        <button type="button" id="modal-known-btn" class="btn btn-sub btn-modal-known" onclick="resolveMeaningModal('known')">意味なしで完了（既知）</button>
+                    </div>
+                    <button type="button" id="modal-save-btn" class="btn btn-primary btn-modal-save" onclick="resolveMeaningModal('save')">この意味で登録する</button>
                 </div>
             </div>
         </div>
