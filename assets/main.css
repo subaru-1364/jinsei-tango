@@ -289,6 +289,20 @@ body {
     white-space: nowrap;
 }
 
+.book-tab-color-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+    transition: transform 0.15s ease;
+}
+
+.book-tab.active .book-tab-color-dot {
+    box-shadow: 0 0 0 1.5px #ffffff;
+    transform: scale(1.1);
+}
+
 .book-tab-title {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -396,42 +410,113 @@ body {
     cursor: not-allowed;
 }
 
+.book-cover-wrap {
+    display: inline-flex;
+    flex-shrink: 0;
+    cursor: pointer;
+    border-radius: 3px;
+    position: relative;
+    outline: none;
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.book-cover-wrap:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+}
+
+.book-cover-wrap:focus-visible {
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
 .book-cover-thumb {
-    width: 34px;
-    height: 48px;
+    width: 36px;
+    height: 50px;
     object-fit: cover;
     border-radius: 3px;
-    border: 1px solid #d4d2c8;
-    box-shadow: 0 1px 2px rgba(24, 24, 27, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: 0 1px 3px rgba(24, 24, 27, 0.12);
     flex-shrink: 0;
     background-color: #f4f3ef;
+}
+
+.book-cover-thumb.is-large {
+    width: 72px;
+    height: 100px;
+    border-radius: 4px;
+    box-shadow: 0 4px 10px rgba(24, 24, 27, 0.18);
 }
 
 .book-cover-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 3px 3px 3px 5px;
+    width: 36px;
+    height: 50px;
+    box-sizing: border-box;
+    padding: 3px 4px 3px 6px;
     font-size: 0.62rem;
     font-weight: 700;
     line-height: 1.15;
-    color: #3f3d37;
-    background: #edeae1;
-    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.12) 0, rgba(0, 0, 0, 0.12) 2px, transparent 2px);
-    border: 1px solid #c8c5b9;
-    border-left: 2px solid #a39f93;
+    background-image: 
+        linear-gradient(to right, rgba(0, 0, 0, 0.25) 0, rgba(0, 0, 0, 0.16) 2px, rgba(255, 255, 255, 0.15) 3px, transparent 4px),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, transparent 60%);
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    border-left: 3px solid rgba(0, 0, 0, 0.32);
     border-radius: 2px 4px 4px 2px;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.08), inset 0 0 4px rgba(0, 0, 0, 0.03);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.12), inset 0 0 4px rgba(0, 0, 0, 0.08);
     text-align: center;
     word-break: break-all;
     overflow: hidden;
     user-select: none;
+    flex-shrink: 0;
+}
+
+.book-cover-placeholder.is-large {
+    width: 72px;
+    height: 100px;
+    font-size: 0.78rem;
+    padding: 6px 8px 6px 12px;
+    border-left-width: 5px;
+    border-radius: 3px 6px 6px 3px;
+    box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.book-cover-placeholder .book-cover-title {
+    display: block;
+    max-width: 100%;
+    word-break: break-all;
+    letter-spacing: -0.02em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .book-meta-text {
     font-weight: 600;
     color: var(--text-primary);
     word-break: break-word;
+}
+
+.btn-book-cover {
+    background: #f4f3ef;
+    border: 1px solid #d4d2c8;
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.12rem 0.5rem;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.15s;
+}
+
+.btn-book-cover:hover {
+    background: #eae8e0;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 .btn-book-remove {
@@ -713,9 +798,19 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #eceae2;
 }
+
+.list-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
 
 .list-title-wrap {
     display: flex;
@@ -1190,11 +1285,29 @@ body {
     flex-wrap: wrap;
 }
 
+.editor-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 .editor-header-right {
     display: flex;
     align-items: center;
     gap: 0.45rem;
     flex-wrap: wrap;
+}
+
+.btn-danger-subtle {
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+    background-color: #fffafb !important;
+}
+
+.btn-danger-subtle:hover {
+    background-color: #fee2e2 !important;
+    border-color: #f87171 !important;
 }
 
 .btn-jump-bottom {
@@ -1226,30 +1339,6 @@ body {
     padding: 0.1rem 0.35rem;
     border-radius: 4px;
     font-size: 0.75rem;
-}
-
-.textarea-wrapper {
-    width: 100%;
-}
-
-textarea#bulk-input {
-    width: 100%;
-    padding: 0.75rem;
-    font-family: inherit;
-    font-size: 16px;
-    line-height: 1.6;
-    color: var(--text-primary);
-    background-color: #fafafa;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    resize: vertical;
-    min-height: 200px;
-}
-
-textarea#bulk-input:focus {
-    background-color: #ffffff;
-    border-color: var(--text-primary);
-    outline: none;
 }
 
 .editor-page-actions {
@@ -1657,6 +1746,9 @@ textarea#bulk-input:focus {
 
 /* 出典（シート名）表示：控えめに */
 .word-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
     margin-top: 0.2rem;
     font-size: 0.68rem;
     color: #a1a1aa;
@@ -1664,6 +1756,14 @@ textarea#bulk-input:focus {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100%;
+}
+
+.word-source-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
 
 .draw-result-box .word-source {
@@ -1725,4 +1825,255 @@ textarea#bulk-input:focus {
 /* ページ番号を中央寄せ */
 .edit-pager {
     justify-content: center;
+}
+
+/* ==================== 単語追加モーダル ==================== */
+.word-add-card {
+    max-width: 480px;
+    gap: 0.85rem;
+}
+
+.word-add-target-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.word-add-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.word-add-select {
+    flex: 1;
+    min-width: 180px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.32rem 0.6rem;
+    background: #fbfaf7;
+    border: 1px solid #d4d2c8;
+    border-radius: 5px;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.word-add-select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+.quick-add-box.in-modal {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+}
+
+.quick-add-box.in-modal textarea {
+    min-height: 100px;
+    background: #faf9f5;
+}
+
+.quick-add-box.in-modal textarea:focus {
+    background: #ffffff;
+}
+
+/* ==================== 書影・表紙設定モーダル ==================== */
+.cover-modal-card {
+    max-width: 440px;
+    gap: 0.85rem;
+}
+
+.cover-modal-book-name {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: -0.25rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid #e5e3dc;
+    word-break: break-word;
+}
+
+.cover-modal-preview-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: #fbfaf7;
+    border: 1px solid #ebe8e1;
+    border-radius: 8px;
+}
+
+.cover-modal-preview-box {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 72px;
+    min-height: 100px;
+}
+
+.cover-modal-preview-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.cover-type-badge {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: #eae8e0;
+    color: var(--text-secondary);
+}
+
+.cover-type-badge.is-color {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.cover-type-badge.is-image {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.cover-preview-hint {
+    margin: 0;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    line-height: 1.35;
+}
+
+.cover-modal-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.cover-modal-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.cover-color-palette {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.45rem;
+}
+
+.cover-palette-btn {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.cover-palette-btn:hover {
+    transform: scale(1.08);
+}
+
+.cover-palette-btn.is-selected {
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px var(--primary-color), 0 2px 6px rgba(0, 0, 0, 0.25);
+    transform: scale(1.05);
+}
+
+.cover-palette-btn.is-selected::after {
+    content: "✓";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.cover-color-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.2rem;
+}
+
+.cover-custom-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.cover-color-picker {
+    width: 32px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #d4d2c8;
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+}
+
+.cover-color-hex {
+    font-family: monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.cover-url-input-row {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.cover-url-input-row .inline-edit-input {
+    flex: 1;
+    font-size: 0.8rem;
+}
+
+.cover-url-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.15rem;
+}
+
+.btn-fetch-cover {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.5rem;
+}
+
+.cover-status-msg {
+    font-size: 0.74rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 4px;
+    line-height: 1.35;
+}
+
+.cover-status-msg.is-info {
+    background: #f4f3ef;
+    color: var(--text-secondary);
+    border: 1px solid #e2e0d8;
+}
+
+.cover-status-msg.is-success {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
 }

@@ -8,11 +8,11 @@
     <link rel="icon" type="image/png" href="./assets/icon.png?v=6">
     <link rel="apple-touch-icon" href="./assets/icon.png?v=6">
 
-    <link rel="stylesheet" href="./assets/main.css?v=73">
+    <link rel="stylesheet" href="./assets/main.css?v=75">
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js" defer></script>
-    <script src="./assets/main.js?v=73" defer></script>
+    <script src="./assets/main.js?v=75" defer></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -45,10 +45,10 @@
                         <span id="sync-status" class="sync-status">同期中</span>
                         <button type="button" id="auth-btn" class="btn-auth" onclick="handleAuthClick()">ログアウト</button>
                     </div>
-                    <a href="./edit.html" class="btn btn-nav">
+                    <button type="button" class="btn btn-primary btn-nav" onclick="openWordAddModal()">
                         <svg class="icon-line" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6"/></svg>
-                        単語を登録・編集
-                    </a>
+                        単語を追加
+                    </button>
                 </div>
             </header>
 
@@ -110,6 +110,9 @@
                         </h2>
                         <span id="filtered-count" class="count-badge">0 件</span>
                     </div>
+                    <div class="list-header-actions">
+                        <button type="button" id="batch-dict-btn" class="btn btn-sub" onclick="batchFetchMissingMeanings()" title="このシート内で意味が未登録の単語を辞書から一括検索">辞書補完</button>
+                    </div>
                 </div>
 
                 <!-- 検索バー -->
@@ -127,7 +130,7 @@
             </section>
         </div>
 
-        <!-- 辞書意味の確認モーダル -->
+        <!-- 単語意味確認モーダル -->
         <div id="meaning-confirm-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true">
             <div class="card modal-card">
                 <div class="modal-header">
@@ -146,6 +149,99 @@
                         <button type="button" id="modal-known-btn" class="btn btn-sub btn-modal-known" onclick="resolveMeaningModal('known')">意味なしで完了（既知）</button>
                     </div>
                     <button type="button" id="modal-save-btn" class="btn btn-primary btn-modal-save" onclick="resolveMeaningModal('save')">この意味で登録する</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 書影・表紙設定モーダル -->
+        <div id="book-cover-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="cover-modal-title">
+            <div class="card modal-card cover-modal-card">
+                <div class="modal-header">
+                    <span class="count-badge">書影・表紙</span>
+                    <h3 id="cover-modal-title" class="modal-word-title">書影の設定</h3>
+                </div>
+                <div id="cover-modal-book-name" class="cover-modal-book-name"></div>
+
+                <!-- プレビュー表示 -->
+                <div class="cover-modal-preview-section">
+                    <div id="cover-modal-preview" class="cover-modal-preview-box"></div>
+                    <div class="cover-modal-preview-info">
+                        <span id="cover-modal-type-badge" class="cover-type-badge">単色カラー</span>
+                        <p class="cover-preview-hint">本棚や一覧で表示される表紙デザインです</p>
+                    </div>
+                </div>
+
+                <!-- 単色カラー選択 -->
+                <div class="cover-modal-section">
+                    <label class="cover-modal-label">単色カラーを選択（12色）</label>
+                    <div id="cover-color-palette" class="cover-color-palette" role="group" aria-label="表紙カラーパレット"></div>
+                    <div class="cover-color-custom-row">
+                        <label for="cover-color-picker" class="cover-custom-label">自由な色を指定：</label>
+                        <input type="color" id="cover-color-picker" class="cover-color-picker" onchange="handleCoverColorPicker(this.value)">
+                        <span id="cover-color-hex" class="cover-color-hex">#1e3a5f</span>
+                    </div>
+                </div>
+
+                <!-- 画像URL設定 -->
+                <div class="cover-modal-section">
+                    <label for="cover-url-input" class="cover-modal-label">または画像URLを指定</label>
+                    <div class="cover-url-input-row">
+                        <input type="url" id="cover-url-input" class="inline-edit-input" placeholder="https://... (画像のURL)" oninput="handleCoverUrlInput(this.value)">
+                        <button type="button" id="cover-url-apply-btn" class="btn btn-sub" onclick="applyCoverUrlFromInput()">プレビュー</button>
+                    </div>
+                    <div class="cover-url-actions">
+                        <button type="button" id="cover-fetch-api-btn" class="btn btn-sub btn-fetch-cover" onclick="handleFetchCoverFromApi()">
+                            <svg class="icon-line" viewBox="0 0 16 16" aria-hidden="true" style="width:13px;height:13px;margin-right:4px;vertical-align:-1px;"><path d="M11.5 6.5a5 5 0 1 1-10 0 5 5 0 0 1 10 0zm-1.5 4.5 4 4"/></svg>
+                            openBD / Google Books から自動取得
+                        </button>
+                    </div>
+                    <div id="cover-status-msg" class="cover-status-msg" style="display: none;"></div>
+                </div>
+
+                <!-- モーダルフッター操作 -->
+                <div class="modal-actions">
+                    <div class="modal-actions-sub">
+                        <button type="button" class="btn btn-sub" onclick="resetCoverToDefault()">デフォルトに戻す</button>
+                        <button type="button" class="btn btn-sub" onclick="closeBookCoverModal()">キャンセル</button>
+                    </div>
+                    <button type="button" id="cover-modal-save-btn" class="btn btn-primary btn-modal-save" onclick="saveBookCoverModal()">この設定で保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 単語追加モーダル -->
+        <div id="word-add-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="word-add-modal-title">
+            <div class="card modal-card word-add-card">
+                <div class="modal-header">
+                    <span class="count-badge">新規登録</span>
+                    <h3 id="word-add-modal-title" class="modal-word-title">単語を追加</h3>
+                </div>
+
+                <!-- 登録先シート選択 -->
+                <div class="word-add-target-row">
+                    <label for="word-add-book-select" class="word-add-label">登録先の本／シート：</label>
+                    <select id="word-add-book-select" class="word-add-select"></select>
+                </div>
+
+                <!-- 単語入力テキストエリア -->
+                <div class="quick-add-box in-modal">
+                    <div class="quick-add-header">
+                        <span class="editor-guide">単語を入力（改行で複数一括登録可能・意味省略時は辞書から自動取得）</span>
+                        <label class="setting-toggle" title="ONにすると辞書から意味を取得した際に「この意味でよいか」の確認画面を出します">
+                            <input type="checkbox" id="confirm-meaning-toggle" onchange="handleConfirmSettingChange(this.checked)">
+                            <span>意味を確認する</span>
+                        </label>
+                    </div>
+                    <textarea id="quick-add-input" rows="4" placeholder="新しい単語を入力（改行で複数一気に登録できます&#10;単語だけでも、単語 : 意味 でもOK）"></textarea>
+                    <div id="quick-add-status" class="quick-add-status" aria-live="polite" style="display: none;"></div>
+                </div>
+
+                <!-- モーダルフッター -->
+                <div class="modal-actions">
+                    <div class="modal-actions-sub">
+                        <button type="button" class="btn btn-sub" onclick="closeWordAddModal()">閉じる</button>
+                    </div>
+                    <button type="button" id="quick-add-btn" class="btn btn-primary" onclick="addQuickWordFromModal()">追加する</button>
                 </div>
             </div>
         </div>

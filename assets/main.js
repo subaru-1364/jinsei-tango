@@ -158,7 +158,7 @@ let activeDbRef = null;
 let cloudSaveTimer = null;
 
 function isEditPage() {
-    return Boolean(document.getElementById("bulk-input"));
+    return window.location.pathname.indexOf("edit.html") !== -1;
 }
 
 function getEffectiveBookIdForEdit() {
@@ -179,12 +179,54 @@ window.addEventListener("DOMContentLoaded", function() {
         enterLocalPreviewMode();
     }
     initFirebase();
+
+    var coverModal = document.getElementById("book-cover-modal");
+    if (coverModal) {
+        coverModal.addEventListener("click", function(e) {
+            if (e.target === coverModal) {
+                closeBookCoverModal();
+            }
+        });
+    }
+
+    var wordAddModal = document.getElementById("word-add-modal");
+    if (wordAddModal) {
+        wordAddModal.addEventListener("click", function(e) {
+            if (e.target === wordAddModal) {
+                closeWordAddModal();
+            }
+        });
+    }
+
+    var quickAddInput = document.getElementById("quick-add-input");
+    if (quickAddInput) {
+        quickAddInput.addEventListener("keydown", function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                addQuickWordFromModal();
+            }
+        });
+    }
+
+    window.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") {
+            var wam = document.getElementById("word-add-modal");
+            if (wam && wam.style.display !== "none") {
+                closeWordAddModal();
+            }
+            var cm = document.getElementById("book-cover-modal");
+            if (cm && cm.style.display !== "none") {
+                closeBookCoverModal();
+            }
+        }
+    });
 });
 
-// 未保存の変更がある状態でタブを閉じたり再読み込みしようとした際に確認ダイアログを表示
+// 未追加の入力がある状態で誤ってタブを閉じようとした場合のみ警告
 let ignoreBeforeUnload = false;
 window.addEventListener("beforeunload", function(event) {
-    if (isEditPage() && !ignoreBeforeUnload && hasUnsavedEditorChanges()) {
+    var quickInput = document.getElementById("quick-add-input");
+    if (!ignoreBeforeUnload && quickInput && quickInput.value.trim() !== "") {
         event.preventDefault();
         event.returnValue = "";
     }
@@ -217,29 +259,13 @@ function refreshUI() {
     renderBookTabs();
     renderActiveBookMeta();
 
-    // 編集画面（edit.html）の場合：選択中の本（または未分類）のシートだけを表示
-    var textarea = document.getElementById("bulk-input");
-    if (textarea) {
-        var editBookId = getEffectiveBookIdForEdit();
-        var forceReload = (editPageBookId !== editBookId);
-        if (forceReload) {
-            editPageBookId = editBookId;
-            editDraftLines = (sheetLines[editBookId] || []).slice();
-            editPageIndex = 0;
-            loadEditPageIntoTextarea();
-        } else {
-            renderEditPager(editDraftLines.length);
-        }
-        var sheetTitleElem = document.getElementById("editor-sheet-title");
-        if (sheetTitleElem) {
-            var bTitle = getBookTitleById(editBookId);
-            sheetTitleElem.textContent = "「" + bTitle + "」シートの編集（単語 : 意味）";
-        }
-        updateWordCountBadge(editDraftLines.length);
-        updateSaveButtonState();
+    var editBookId = getEffectiveBookIdForEdit();
+    var sheetTitleElem = document.getElementById("editor-sheet-title");
+    if (sheetTitleElem) {
+        var bTitle = getBookTitleById(editBookId);
+        sheetTitleElem.textContent = "「" + bTitle + "」シートの登録単語";
     }
 
-    // 一覧画面（index.html）の場合
     var wordListContainer = document.getElementById("word-list");
     if (wordListContainer) {
         var searchInput = document.getElementById("search-input");
@@ -359,197 +385,23 @@ function pushLocalToCloud(textToSave, clientTime) {
 }
 
 // ==================== 編集画面のページ分割（100件ごと）と未保存管理 ====================
-let editPageIndex = 0;       // 表示中のページ（0始まり）
-let editPageBookId = null;   // textarea に読み込み済みのシート
-let editLoadedCount = 0;     // textarea に読み込んだ行数（差し戻し時の範囲）
-let editDraftLines = [];     // 編集中のシートの未保存作業コピー（保存ボタンを押すまで sheetLines は書き換えない）
 let saveFeedbackTimer = null;
 
-function getEditPageCount(total) {
-    return Math.max(1, Math.ceil(total / EDIT_PAGE_SIZE));
-}
-
-// textarea の内容を、編集中ドラフト（editDraftLines）の現在ページ範囲へ反映する
-function spliceTextareaIntoDraft(textareaValue) {
-    var pageLines = textareaValue.split("\n").map(function(l) { return l.trim(); }).filter(function(l) { return l !== ""; });
-    var start = editPageIndex * EDIT_PAGE_SIZE;
-    editDraftLines = editDraftLines.slice(0, start).concat(pageLines, editDraftLines.slice(start + editLoadedCount));
-    editLoadedCount = pageLines.length;
-}
-
-// 現在のページを textarea に読み込む
-function loadEditPageIntoTextarea() {
-    var textarea = document.getElementById("bulk-input");
-    if (!textarea) return;
-    var editBookId = getEffectiveBookIdForEdit();
-    if (editPageBookId !== editBookId) {
-        editPageBookId = editBookId;
-        editDraftLines = (sheetLines[editBookId] || []).slice();
-    }
-    var all = editDraftLines;
-    editPageIndex = Math.min(Math.max(0, editPageIndex), getEditPageCount(all.length) - 1);
-    var start = editPageIndex * EDIT_PAGE_SIZE;
-    var pageLines = all.slice(start, start + EDIT_PAGE_SIZE);
-    textarea.value = pageLines.join("\n");
-    editLoadedCount = pageLines.length;
-    renderEditPager(all.length);
-}
-
-// 未保存の変更があるかどうかを判定
-function hasUnsavedEditorChanges() {
-    if (!isEditPage()) return false;
-    var editBookId = getEffectiveBookIdForEdit();
-    if (editPageBookId === editBookId) {
-        var savedLines = sheetLines[editBookId] || [];
-        if (editDraftLines.join("\n") !== savedLines.join("\n")) {
-            return true;
-        }
-    }
-    var quickInput = document.getElementById("quick-add-input");
-    if (quickInput && quickInput.value.trim() !== "") {
-        return true;
-    }
-    return false;
-}
-
-// 未保存の変更を破棄して最後の保存状態に戻す
-function discardUnsavedEditorChanges() {
-    var editBookId = getEffectiveBookIdForEdit();
-    editDraftLines = (sheetLines[editBookId] || []).slice();
-    var quickInput = document.getElementById("quick-add-input");
-    if (quickInput) {
-        quickInput.value = "";
-    }
-    loadEditPageIntoTextarea();
-    updateSaveButtonState();
-}
-
-function updateSaveButtonState() {
-    var saveBtn = document.getElementById("save-btn");
+function showSaveFeedback(msg, keepVisible) {
     var feedback = document.getElementById("save-feedback");
-    if (!saveBtn) return;
-
-    var dirty = hasUnsavedEditorChanges();
-    saveBtn.disabled = !dirty;
-    saveBtn.textContent = dirty ? "保存する" : "保存済み";
-    saveBtn.classList.toggle("is-dirty", dirty);
-
-    if (feedback) {
-        if (dirty) {
-            if (saveFeedbackTimer) {
-                clearTimeout(saveFeedbackTimer);
-                saveFeedbackTimer = null;
-            }
-            feedback.textContent = "未保存の変更あり";
-            feedback.classList.add("unsaved", "visible");
-        } else if (feedback.classList.contains("unsaved")) {
-            feedback.classList.remove("unsaved", "visible");
-            feedback.textContent = "";
-        }
+    if (!feedback) return;
+    if (saveFeedbackTimer) {
+        clearTimeout(saveFeedbackTimer);
+        saveFeedbackTimer = null;
     }
-}
-
-function handleQuickAddInput() {
-    updateSaveButtonState();
-}
-
-// 「1 2 3 …」形式のページ番号ボタンを描画する共通処理
-function renderPageNumbers(pager, total, pageSize, currentIndex, onSelect) {
-    var pageCount = Math.max(1, Math.ceil(total / pageSize));
-    pager.textContent = "";
-    if (pageCount <= 1) {
-        pager.style.display = "none";
-        return;
-    }
-    pager.style.display = "flex";
-    for (var i = 0; i < pageCount; i++) {
-        (function(idx) {
-            var btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = idx === currentIndex ? "edit-page-btn active" : "edit-page-btn";
-            btn.textContent = String(idx + 1);
-            btn.title = (idx * pageSize + 1) + "〜" + Math.min(total, (idx + 1) * pageSize) + "件目";
-            if (idx === currentIndex) btn.setAttribute("aria-current", "page");
-            btn.addEventListener("click", function() { onSelect(idx); });
-            pager.appendChild(btn);
-        })(i);
-    }
-}
-
-function renderEditPager(total) {
-    var pager = document.getElementById("edit-pager");
-    if (!pager) return;
-    renderPageNumbers(pager, total, EDIT_PAGE_SIZE, editPageIndex, switchEditPage);
-}
-
-function switchEditPage(idx) {
-    if (idx === editPageIndex) return;
-    var textarea = document.getElementById("bulk-input");
-    var editBookId = getEffectiveBookIdForEdit();
-    if (textarea && editPageBookId === editBookId) {
-        spliceTextareaIntoDraft(textarea.value);
-    }
-    editPageIndex = idx;
-    loadEditPageIntoTextarea();
-    updateSaveButtonState();
-    if (textarea) textarea.scrollTop = 0;
-}
-
-// 「保存する」ボタンによる明示的保存
-function saveEditorExplicit() {
-    var editBookId = getEffectiveBookIdForEdit();
-    var textarea = document.getElementById("bulk-input");
-    var quickInput = document.getElementById("quick-add-input");
-
-    if (textarea && editPageBookId === editBookId) {
-        spliceTextareaIntoDraft(textarea.value);
-    }
-
-    // 新規追加欄にも入力がある場合は、シート編集内容と合わせて追加・辞書取得を実行
-    if (quickInput && quickInput.value.trim() !== "") {
-        addQuickWord();
-        return;
-    }
-
-    // 保存前の既存単語セット（新しく追加された意味なし単語を検出して自動付与するため）
-    var prevLines = sheetLines[editBookId] || [];
-    var prevWordSet = {};
-    prevLines.forEach(function(l) {
-        var wk = normalizeWordKey(extractWordFromLine(l));
-        if (wk) prevWordSet[wk] = true;
-    });
-
-    var newlyAddedWordsWithoutMeaning = [];
-    var seenNew = {};
-    editDraftLines.forEach(function(l) {
-        var trimmed = (l || "").trim();
-        if (!trimmed || /[:：\t]/.test(trimmed)) return;
-        var wRaw = extractWordFromLine(trimmed);
-        var wNorm = normalizeWordKey(wRaw);
-        if (wNorm && !prevWordSet[wNorm] && !seenNew[wNorm]) {
-            seenNew[wNorm] = true;
-            newlyAddedWordsWithoutMeaning.push(wRaw);
-        }
-    });
-
-    sheetLines[editBookId] = editDraftLines.slice();
-    var hasDup = deduplicateAllSheets();
-    if (cloudSaveTimer) {
-        clearTimeout(cloudSaveTimer);
-        cloudSaveTimer = null;
-    }
-    saveAllSheets(false);
-    editDraftLines = (sheetLines[editBookId] || []).slice();
-    loadEditPageIntoTextarea();
-    refreshUI();
-
-    if (newlyAddedWordsWithoutMeaning.length > 0) {
-        showSaveFeedback("保存しました・新規単語の意味を辞書から検索中...", true);
-        autoFillMeaningsForSheetWords(editBookId, newlyAddedWordsWithoutMeaning);
-    } else if (hasDup) {
-        showSaveFeedback("保存しました（他シートと重複した単語を自動統合しました）");
-    } else {
-        showSaveFeedback("保存しました");
+    feedback.classList.remove("unsaved");
+    feedback.textContent = msg;
+    feedback.classList.add("visible");
+    if (!keepVisible) {
+        saveFeedbackTimer = setTimeout(function() {
+            saveFeedbackTimer = null;
+            feedback.classList.remove("visible");
+        }, 3200);
     }
 }
 
@@ -584,44 +436,46 @@ function showQuickAddStatus(msg, state, autoHide) {
     }
 }
 
-function showSaveFeedback(msg, keepVisible) {
-    var feedback = document.getElementById("save-feedback");
-    if (!feedback) return;
-    if (saveFeedbackTimer) {
-        clearTimeout(saveFeedbackTimer);
-        saveFeedbackTimer = null;
-    }
-    feedback.classList.remove("unsaved");
-    feedback.textContent = msg;
-    feedback.classList.add("visible");
-    if (!keepVisible) {
-        saveFeedbackTimer = setTimeout(function() {
-            saveFeedbackTimer = null;
-            if (hasUnsavedEditorChanges()) {
-                updateSaveButtonState();
-            } else {
-                feedback.classList.remove("visible");
-            }
-        }, 3200);
+function handleQuickAddInput() {}
+
+function hasUnsavedEditorChanges() {
+    var quickInput = document.getElementById("quick-add-input");
+    return Boolean(quickInput && quickInput.value.trim() !== "");
+}
+
+function discardUnsavedEditorChanges() {
+    var quickInput = document.getElementById("quick-add-input");
+    if (quickInput) {
+        quickInput.value = "";
     }
 }
 
-// 編集画面から「一覧に戻る」を押したとき（未保存の変更があれば確認ダイアログを出す）
+function updateSaveButtonState() {}
+
+// 「1 2 3 …」形式のページ番号ボタンを描画する共通処理（100件ごと）
+function renderPageNumbers(pager, total, pageSize, currentIndex, onSelect) {
+    var pageCount = Math.max(1, Math.ceil(total / pageSize));
+    pager.textContent = "";
+    if (pageCount <= 1) {
+        pager.style.display = "none";
+        return;
+    }
+    pager.style.display = "flex";
+    for (var i = 0; i < pageCount; i++) {
+        (function(idx) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = idx === currentIndex ? "edit-page-btn active" : "edit-page-btn";
+            btn.textContent = String(idx + 1);
+            btn.title = (idx * pageSize + 1) + "〜" + Math.min(total, (idx + 1) * pageSize) + "件目";
+            if (idx === currentIndex) btn.setAttribute("aria-current", "page");
+            btn.addEventListener("click", function() { onSelect(idx); });
+            pager.appendChild(btn);
+        })(i);
+    }
+}
+
 function returnToIndex(event) {
-    var textarea = document.getElementById("bulk-input");
-    var editBookId = getEffectiveBookIdForEdit();
-    if (textarea && editPageBookId === editBookId) {
-        spliceTextareaIntoDraft(textarea.value);
-    }
-
-    if (hasUnsavedEditorChanges()) {
-        if (!confirm("保存されていない変更があります。\n保存せずに一覧へ戻ると変更は破棄されます。よろしいですか？")) {
-            if (event) event.preventDefault();
-            return;
-        }
-        discardUnsavedEditorChanges();
-    }
-
     ignoreBeforeUnload = true;
     if (cloudSaveTimer) {
         clearTimeout(cloudSaveTimer);
@@ -731,8 +585,64 @@ function findExistingWordLocation(targetWord) {
     return null;
 }
 
+// ==================== 単語追加モーダル ====================
+function openWordAddModal(defaultBookId) {
+    var modal = document.getElementById("word-add-modal");
+    if (!modal) return;
+
+    var select = document.getElementById("word-add-book-select");
+    if (select) {
+        select.textContent = "";
+        var uncatOpt = document.createElement("option");
+        uncatOpt.value = "uncategorized";
+        uncatOpt.textContent = "未分類";
+        select.appendChild(uncatOpt);
+
+        bookList.forEach(function(b) {
+            var opt = document.createElement("option");
+            opt.value = b.id;
+            opt.textContent = "『" + b.title + "』";
+            select.appendChild(opt);
+        });
+
+        var chosenId = defaultBookId;
+        if (!chosenId) {
+            if (currentBookTab && currentBookTab !== "all_books") {
+                chosenId = currentBookTab;
+            } else if (bookList.length > 0) {
+                chosenId = bookList[0].id;
+            } else {
+                chosenId = "uncategorized";
+            }
+        }
+        select.value = chosenId;
+    }
+
+    var input = document.getElementById("quick-add-input");
+    if (input) {
+        input.value = "";
+    }
+    showQuickAddStatus("", "");
+
+    modal.style.display = "flex";
+    if (input) {
+        setTimeout(function() { input.focus(); }, 80);
+    }
+}
+
+function closeWordAddModal() {
+    var modal = document.getElementById("word-add-modal");
+    if (modal) modal.style.display = "none";
+}
+
+function addQuickWordFromModal() {
+    var select = document.getElementById("word-add-book-select");
+    var targetBookId = select ? select.value : "uncategorized";
+    addQuickWord(targetBookId);
+}
+
 // 新規追加（複数行まとめて最下部へ追加＋重複自動スキップ＋意味省略時は辞書から自動取得）
-function addQuickWord() {
+function addQuickWord(explicitBookId) {
     var input = document.getElementById("quick-add-input");
     if (!input) return;
     var raw = input.value.trim();
@@ -741,14 +651,7 @@ function addQuickWord() {
     var rawLines = raw.split("\n").map(function(l) { return l.trim(); }).filter(Boolean);
     if (rawLines.length === 0) return;
 
-    var editBookId = getEffectiveBookIdForEdit();
-    var textarea = document.getElementById("bulk-input");
-
-    // 編集中のテキストエリアの変更も先にシートへ反映してから重複チェックを行う
-    if (textarea && editPageBookId === editBookId) {
-        spliceTextareaIntoDraft(textarea.value);
-        sheetLines[editBookId] = editDraftLines.slice();
-    }
+    var targetBookId = explicitBookId || (currentBookTab !== "all_books" ? currentBookTab : "uncategorized");
     deduplicateAllSheets();
 
     var validLinesToAdd = [];
@@ -784,11 +687,6 @@ function addQuickWord() {
 
     // すべて重複していた場合
     if (validLinesToAdd.length === 0) {
-        saveAllSheets(false);
-        editDraftLines = (sheetLines[editBookId] || []).slice();
-        if (textarea) {
-            loadEditPageIntoTextarea();
-        }
         refreshUI();
         var skipMsg = skippedWords.length === 1
             ? (skippedWords[0] + "は登録済みのためスキップしました")
@@ -799,17 +697,10 @@ function addQuickWord() {
     }
 
     // 有効な単語のみを最下部へ追加
-    var currentLines = sheetLines[editBookId] || [];
-    sheetLines[editBookId] = currentLines.concat(validLinesToAdd);
+    var currentLines = sheetLines[targetBookId] || [];
+    sheetLines[targetBookId] = currentLines.concat(validLinesToAdd);
 
     saveAllSheets(false);
-    editDraftLines = (sheetLines[editBookId] || []).slice();
-
-    if (textarea) {
-        editPageIndex = getEditPageCount(editDraftLines.length) - 1;
-        loadEditPageIntoTextarea();
-        textarea.scrollTop = textarea.scrollHeight;
-    }
     refreshUI();
 
     var feedbackMsg = "";
@@ -823,11 +714,16 @@ function addQuickWord() {
         var loadingMsg = feedbackMsg + "・辞書から意味を検索中...";
         showSaveFeedback(loadingMsg, true);
         showQuickAddStatus("辞書から意味を自動取得しています...", "loading");
-        autoFillMeaningsForSheetWords(editBookId, wordsNeedingAutoMeaning);
+        autoFillMeaningsForSheetWords(targetBookId, wordsNeedingAutoMeaning);
     } else {
         showSaveFeedback(feedbackMsg);
-        showQuickAddStatus(feedbackMsg, "success", 3500);
+        showQuickAddStatus(feedbackMsg, "success", 2500);
     }
+
+    // モーダルから呼ばれた場合は自動で閉じる
+    setTimeout(function() {
+        closeWordAddModal();
+    }, 600);
 }
 
 // ==================== ISBN / 本棚（書籍別シート）管理 ====================
@@ -1205,9 +1101,17 @@ function renderBookSearchCandidates(rawQuery, candidates) {
                 img.src = cand.cover;
                 img.alt = cand.title;
                 img.addEventListener("error", function() {
-                    img.style.display = "none";
+                    var ph = renderCoverSpineElement(cand.title, getDeterministicBookColor(cand.title), "thumb");
+                    ph.className = "book-search-thumb book-cover-placeholder";
+                    if (img.parentNode) {
+                        img.parentNode.replaceChild(ph, img);
+                    }
                 });
                 row.appendChild(img);
+            } else {
+                var ph = renderCoverSpineElement(cand.title, getDeterministicBookColor(cand.title), "thumb");
+                ph.className = "book-search-thumb book-cover-placeholder";
+                row.appendChild(ph);
             }
 
             var textWrap = document.createElement("div");
@@ -1261,9 +1165,13 @@ function renderBookSearchCandidates(rawQuery, candidates) {
 
 function sanitizeCoverUrl(url) {
     if (!url || typeof url !== "string") return "";
-    var clean = url.trim();
+    var clean = url.trim().replace(/[\r\n\t]/g, "");
     if (!clean) return "";
-    // http を https へ置換
+    // http / https 以外の危険なスキーム（javascript: や data:text/html 等）は無効化
+    if (!/^https?:\/\//i.test(clean) && !/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,/i.test(clean)) {
+        return "";
+    }
+    // http を https へ置換（混在コンテンツ防止）
     clean = clean.replace(/^http:\/\//i, "https://");
     // Google Books の curl パラメータ（画像読み込み失敗の原因）を除去
     clean = clean.replace(/&edge=curl/g, "").replace(/\?edge=curl&/g, "?").replace(/\?edge=curl$/g, "");
@@ -1382,19 +1290,6 @@ function lookupBookByIsbnApi(isbn) {
 }
 
 function registerBookObject(isbn, title, author, coverUrl) {
-    if (isEditPage()) {
-        var textarea = document.getElementById("bulk-input");
-        var currentEditId = getEffectiveBookIdForEdit();
-        if (textarea && editPageBookId === currentEditId) {
-            spliceTextareaIntoDraft(textarea.value);
-        }
-        if (hasUnsavedEditorChanges()) {
-            if (!confirm("現在のシートに保存されていない変更があります。\n保存せずに新しいシートを作成・移動すると変更は破棄されます。よろしいですか？")) {
-                return;
-            }
-            discardUnsavedEditorChanges();
-        }
-    }
     var newId = "book_" + (isbn || Date.now());
     var finalCover = coverUrl || (isbn ? bookCoverCache[isbn] : "") || "";
     var existingBook = null;
@@ -1429,20 +1324,6 @@ function registerBookObject(isbn, title, author, coverUrl) {
 }
 
 function selectBookTab(bookId) {
-    if (isEditPage()) {
-        var currentEditId = getEffectiveBookIdForEdit();
-        if (bookId === currentEditId) return;
-        var textarea = document.getElementById("bulk-input");
-        if (textarea && editPageBookId === currentEditId) {
-            spliceTextareaIntoDraft(textarea.value);
-        }
-        if (hasUnsavedEditorChanges()) {
-            if (!confirm("保存されていない変更があります。\n保存せずに別のシートへ切り替えると変更は破棄されます。よろしいですか？")) {
-                return;
-            }
-            discardUnsavedEditorChanges();
-        }
-    }
     if (currentBookTab !== bookId) {
         currentBookTab = bookId;
         listPageIndex = 0;
@@ -1585,6 +1466,17 @@ function renderBookTabs() {
         btn.type = "button";
         btn.className = (activeTabId === id) ? "book-tab active" : "book-tab";
         btn.title = titleText + " (" + count + "件)";
+
+        if (isDraggableBook) {
+            var bObj = getBookById(id);
+            if (bObj) {
+                var dot = document.createElement("span");
+                dot.className = "book-tab-color-dot";
+                var cInfo = getBookCoverInfo(bObj);
+                dot.style.backgroundColor = (cInfo.type === "color") ? cInfo.value : getDeterministicBookColor(bObj.title);
+                btn.appendChild(dot);
+            }
+        }
 
         var titleSpan = document.createElement("span");
         titleSpan.className = "book-tab-title";
@@ -1764,6 +1656,411 @@ function fetchCoverUrlForBook(book) {
     });
 }
 
+// ==================== 書影・表紙カラー管理 ====================
+
+var BOOK_COVER_PALETTE = [
+    { name: "紺青", hex: "#1e3a5f" },
+    { name: "深緑", hex: "#1b4d3e" },
+    { name: "茜色", hex: "#8b263e" },
+    { name: "煉瓦", hex: "#a84328" },
+    { name: "山吹", hex: "#b8860b" },
+    { name: "墨色", hex: "#2d3748" },
+    { name: "紫苑", hex: "#5b3256" },
+    { name: "浅葱", hex: "#1f6670" },
+    { name: "萌黄", hex: "#4a6741" },
+    { name: "栗色", hex: "#5c3a21" },
+    { name: "珊瑚", hex: "#b04a5a" },
+    { name: "藍鼠", hex: "#2e4057" }
+];
+
+// 書籍名・IDから決定論的に落ち着いた単色カラーを割り当て（デフォルト色）
+function getDeterministicBookColor(seed) {
+    var str = String(seed || "").trim();
+    if (!str) return BOOK_COVER_PALETTE[0].hex;
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+        hash = (hash << 5) - hash + str.charCodeAt(i);
+        hash |= 0;
+    }
+    var idx = Math.abs(hash) % BOOK_COVER_PALETTE.length;
+    return BOOK_COVER_PALETTE[idx].hex;
+}
+
+// 単色背景上の文字のコントラスト（白 / 黒）を自動判定（YIQ比）
+function getContrastTextColor(hexColor) {
+    if (!hexColor || hexColor.charAt(0) !== "#") return "#ffffff";
+    var hex = hexColor.slice(1);
+    if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    var r = parseInt(hex.substring(0, 2), 16) || 0;
+    var g = parseInt(hex.substring(2, 4), 16) || 0;
+    var b = parseInt(hex.substring(4, 6), 16) || 0;
+    var yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 155 ? "#1c1917" : "#ffffff";
+}
+
+// 書籍の表紙種別と値（画像URL / 単色カラー / 自動デフォルト単色）を判定
+function getBookCoverInfo(book) {
+    if (!book) {
+        return { type: "color", value: BOOK_COVER_PALETTE[0].hex, isDefault: true };
+    }
+    var raw = (book.cover || bookCoverCache[book.id] || (book.isbn ? bookCoverCache[book.isbn] : "") || "").trim();
+
+    // 単色カラーコード（#ffffff または color:#ffffff 等）
+    if (/^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(raw) || /^color:/i.test(raw)) {
+        var colorVal = raw.replace(/^color:/i, "").trim();
+        return { type: "color", value: colorVal, isDefault: false };
+    }
+
+    // 画像URL
+    if (/^https?:\/\//i.test(raw) || /^data:image\//i.test(raw)) {
+        return { type: "image", value: sanitizeCoverUrl(raw), isDefault: false };
+    }
+
+    // 未設定時は書籍名から自動決定した単色カラー
+    var defColor = getDeterministicBookColor(book.title || book.id || "無題");
+    return { type: "color", value: defColor, isDefault: true };
+}
+
+// 単色の背表紙・表紙プレースホルダー要素を生成（本らしい質感とタイトル入り）
+function renderCoverSpineElement(bookTitle, color, size) {
+    var ph = document.createElement("div");
+    ph.className = "book-cover-placeholder" + (size ? (" is-" + size) : "");
+    var raw = (bookTitle || "").trim();
+    ph.setAttribute("aria-label", raw || "表紙");
+    var textColor = getContrastTextColor(color);
+    ph.style.backgroundColor = color;
+    ph.style.color = textColor;
+
+    var titleEl = document.createElement("span");
+    titleEl.className = "book-cover-title";
+    var maxLen = size === "large" ? 14 : 7;
+    var displayTitle = raw;
+    if (displayTitle.length > maxLen) {
+        displayTitle = displayTitle.slice(0, maxLen);
+    }
+    titleEl.textContent = displayTitle || "無題";
+    ph.appendChild(titleEl);
+    return ph;
+}
+
+// 書籍の表紙サムネイル要素（画像または単色背表紙）を生成
+function createCoverElement(book, size) {
+    var coverInfo = getBookCoverInfo(book);
+    var wrap = document.createElement("div");
+    wrap.className = "book-cover-wrap" + (size ? (" is-" + size) : "");
+    wrap.setAttribute("role", "button");
+    wrap.setAttribute("tabindex", "0");
+    wrap.title = "クリックして書影・表紙カラーを設定";
+
+    if (coverInfo.type === "image") {
+        var img = document.createElement("img");
+        img.className = "book-cover-thumb" + (size ? (" is-" + size) : "");
+        img.referrerPolicy = "no-referrer";
+        img.alt = book ? book.title : "表紙";
+        img.src = coverInfo.value;
+        img.addEventListener("error", function() {
+            var fallbackColor = getDeterministicBookColor(book ? (book.title || book.id) : "");
+            var ph = renderCoverSpineElement(book ? book.title : "", fallbackColor, size);
+            if (img.parentNode) {
+                img.parentNode.replaceChild(ph, img);
+            }
+        });
+        wrap.appendChild(img);
+    } else {
+        var spineEl = renderCoverSpineElement(book ? book.title : "", coverInfo.value, size);
+        wrap.appendChild(spineEl);
+    }
+
+    var onOpen = function() {
+        if (book && book.id) {
+            openBookCoverModal(book.id);
+        }
+    };
+    wrap.addEventListener("click", onOpen);
+    wrap.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpen();
+        }
+    });
+
+    return wrap;
+}
+
+// ==================== 書影・表紙設定モーダル操作 ====================
+var currentCoverModalBookId = null;
+var coverModalDraft = { type: "color", value: "#1e3a5f", isDefault: true };
+
+function openBookCoverModal(bookId) {
+    var book = getBookById(bookId);
+    if (!book) return;
+    currentCoverModalBookId = bookId;
+
+    var modal = document.getElementById("book-cover-modal");
+    if (!modal) return;
+
+    var nameEl = document.getElementById("cover-modal-book-name");
+    if (nameEl) {
+        nameEl.textContent = "『" + (book.title || "無題") + "』";
+    }
+
+    var coverInfo = getBookCoverInfo(book);
+    coverModalDraft = {
+        type: coverInfo.type,
+        value: coverInfo.value,
+        isDefault: coverInfo.isDefault
+    };
+
+    var urlInput = document.getElementById("cover-url-input");
+    if (urlInput) {
+        urlInput.value = (coverInfo.type === "image") ? coverInfo.value : "";
+    }
+
+    var picker = document.getElementById("cover-color-picker");
+    var hexSpan = document.getElementById("cover-color-hex");
+    var initialColor = (coverInfo.type === "color") ? coverInfo.value : getDeterministicBookColor(book.title || book.id);
+    if (picker) picker.value = initialColor;
+    if (hexSpan) hexSpan.textContent = initialColor;
+
+    hideCoverStatusMsg();
+    renderCoverColorPalette(coverModalDraft.type === "color" ? coverModalDraft.value : null);
+    updateCoverModalPreview();
+
+    modal.style.display = "flex";
+}
+
+function closeBookCoverModal() {
+    var modal = document.getElementById("book-cover-modal");
+    if (modal) modal.style.display = "none";
+    currentCoverModalBookId = null;
+    hideCoverStatusMsg();
+}
+
+function updateCoverModalPreview() {
+    var box = document.getElementById("cover-modal-preview");
+    var badge = document.getElementById("cover-modal-type-badge");
+    if (!box) return;
+    box.textContent = "";
+
+    var book = getBookById(currentCoverModalBookId);
+    var title = book ? book.title : "";
+
+    if (coverModalDraft.type === "image") {
+        if (badge) {
+            badge.textContent = "画像書影";
+            badge.className = "cover-type-badge is-image";
+        }
+        var img = document.createElement("img");
+        img.className = "book-cover-thumb is-large";
+        img.referrerPolicy = "no-referrer";
+        img.alt = title || "表紙";
+        img.src = coverModalDraft.value;
+        img.addEventListener("error", function() {
+            showCoverStatusMsg("画像URLの読み込みに失敗しました。URLをご確認ください。", "info");
+            var ph = renderCoverSpineElement(title, getDeterministicBookColor(title), "large");
+            if (img.parentNode) {
+                img.parentNode.replaceChild(ph, img);
+            }
+        });
+        box.appendChild(img);
+    } else {
+        if (badge) {
+            badge.textContent = coverModalDraft.isDefault ? "単色カラー（自動）" : "単色カラー（指定）";
+            badge.className = "cover-type-badge is-color";
+        }
+        var spine = renderCoverSpineElement(title, coverModalDraft.value, "large");
+        box.appendChild(spine);
+    }
+}
+
+function renderCoverColorPalette(selectedHex) {
+    var container = document.getElementById("cover-color-palette");
+    if (!container) return;
+    container.textContent = "";
+
+    BOOK_COVER_PALETTE.forEach(function(item) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "cover-palette-btn";
+        if (selectedHex && selectedHex.toLowerCase() === item.hex.toLowerCase()) {
+            btn.classList.add("is-selected");
+        }
+        btn.style.backgroundColor = item.hex;
+        btn.title = item.name + " (" + item.hex + ")";
+        btn.setAttribute("aria-label", item.name);
+        btn.addEventListener("click", function() {
+            selectCoverColor(item.hex);
+        });
+        container.appendChild(btn);
+    });
+}
+
+function selectCoverColor(hex) {
+    coverModalDraft = { type: "color", value: hex, isDefault: false };
+    var picker = document.getElementById("cover-color-picker");
+    var hexSpan = document.getElementById("cover-color-hex");
+    var urlInput = document.getElementById("cover-url-input");
+    if (picker) picker.value = hex;
+    if (hexSpan) hexSpan.textContent = hex;
+    if (urlInput) urlInput.value = "";
+    hideCoverStatusMsg();
+    renderCoverColorPalette(hex);
+    updateCoverModalPreview();
+}
+
+function handleCoverColorPicker(val) {
+    if (!val) return;
+    coverModalDraft = { type: "color", value: val, isDefault: false };
+    var hexSpan = document.getElementById("cover-color-hex");
+    var urlInput = document.getElementById("cover-url-input");
+    if (hexSpan) hexSpan.textContent = val;
+    if (urlInput) urlInput.value = "";
+    hideCoverStatusMsg();
+    renderCoverColorPalette(val);
+    updateCoverModalPreview();
+}
+
+function handleCoverUrlInput(val) {
+    var trimmed = (val || "").trim();
+    if (!trimmed) {
+        var book = getBookById(currentCoverModalBookId);
+        var defColor = getDeterministicBookColor(book ? (book.title || book.id) : "");
+        coverModalDraft = { type: "color", value: defColor, isDefault: true };
+        updateCoverModalPreview();
+        renderCoverColorPalette(defColor);
+        return;
+    }
+    if (/^https?:\/\//i.test(trimmed)) {
+        coverModalDraft = { type: "image", value: sanitizeCoverUrl(trimmed), isDefault: false };
+        updateCoverModalPreview();
+        renderCoverColorPalette(null);
+    }
+}
+
+function applyCoverUrlFromInput() {
+    var urlInput = document.getElementById("cover-url-input");
+    var val = urlInput ? urlInput.value.trim() : "";
+    if (!val) {
+        showCoverStatusMsg("画像URLを入力してください", "info");
+        return;
+    }
+    if (!/^https?:\/\//i.test(val)) {
+        showCoverStatusMsg("URLは http:// または https:// から始まる形式で入力してください", "info");
+        return;
+    }
+    coverModalDraft = { type: "image", value: sanitizeCoverUrl(val), isDefault: false };
+    hideCoverStatusMsg();
+    renderCoverColorPalette(null);
+    updateCoverModalPreview();
+}
+
+function setFetchButtonState(btn, loading) {
+    if (!btn) return;
+    btn.textContent = "";
+    if (loading) {
+        btn.disabled = true;
+        btn.textContent = "検索中...";
+    } else {
+        btn.disabled = false;
+        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("class", "icon-line");
+        svg.setAttribute("viewBox", "0 0 16 16");
+        svg.setAttribute("aria-hidden", "true");
+        svg.style.width = "13px";
+        svg.style.height = "13px";
+        svg.style.marginRight = "4px";
+        svg.style.verticalAlign = "-1px";
+        var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", "M11.5 6.5a5 5 0 1 1-10 0 5 5 0 0 1 10 0zm-1.5 4.5 4 4");
+        svg.appendChild(path);
+        btn.appendChild(svg);
+        btn.appendChild(document.createTextNode("openBD / Google Books から自動取得"));
+    }
+}
+
+function handleFetchCoverFromApi() {
+    var book = getBookById(currentCoverModalBookId);
+    if (!book) return;
+    var btn = document.getElementById("cover-fetch-api-btn");
+    setFetchButtonState(btn, true);
+
+    fetchCoverUrlForBook(book).then(function(url) {
+        setFetchButtonState(btn, false);
+        if (url) {
+            coverModalDraft = { type: "image", value: url, isDefault: false };
+            var urlInput = document.getElementById("cover-url-input");
+            if (urlInput) urlInput.value = url;
+            renderCoverColorPalette(null);
+            updateCoverModalPreview();
+            showCoverStatusMsg("書影が見つかりました！", "success");
+        } else {
+            showCoverStatusMsg("openBD / Google Books から書影が見つかりませんでした。単色カラーをご活用ください。", "info");
+        }
+    }).catch(function() {
+        setFetchButtonState(btn, false);
+        showCoverStatusMsg("取得中にエラーが発生しました", "info");
+    });
+}
+
+function resetCoverToDefault() {
+    var book = getBookById(currentCoverModalBookId);
+    var defColor = getDeterministicBookColor(book ? (book.title || book.id) : "");
+    coverModalDraft = { type: "color", value: defColor, isDefault: true };
+    var urlInput = document.getElementById("cover-url-input");
+    var picker = document.getElementById("cover-color-picker");
+    var hexSpan = document.getElementById("cover-color-hex");
+    if (urlInput) urlInput.value = "";
+    if (picker) picker.value = defColor;
+    if (hexSpan) hexSpan.textContent = defColor + " (自動)";
+    renderCoverColorPalette(defColor);
+    updateCoverModalPreview();
+    showCoverStatusMsg("デフォルトの自動設定に戻しました（「この設定で保存」を押すと確定します）", "info");
+}
+
+function saveBookCoverModal() {
+    var book = getBookById(currentCoverModalBookId);
+    if (!book) {
+        closeBookCoverModal();
+        return;
+    }
+
+    if (coverModalDraft.isDefault) {
+        book.cover = "";
+    } else if (coverModalDraft.type === "color") {
+        book.cover = coverModalDraft.value;
+    } else if (coverModalDraft.type === "image") {
+        book.cover = sanitizeCoverUrl(coverModalDraft.value);
+    }
+
+    bookCoverCache[book.id] = book.cover;
+    if (book.isbn) {
+        bookCoverCache[book.isbn] = book.cover;
+    }
+
+    saveAllSheets(false);
+    renderBookTabs();
+    renderActiveBookMeta();
+    var si = document.getElementById("search-input");
+    renderWordCards(si ? si.value : "");
+    closeBookCoverModal();
+    showSaveFeedback("『" + book.title + "』の書影を設定しました");
+}
+
+function showCoverStatusMsg(text, type) {
+    var msg = document.getElementById("cover-status-msg");
+    if (!msg) return;
+    msg.textContent = text;
+    msg.className = "cover-status-msg is-" + (type || "info");
+    msg.style.display = "block";
+}
+
+function hideCoverStatusMsg() {
+    var msg = document.getElementById("cover-status-msg");
+    if (msg) msg.style.display = "none";
+}
+
 function renderActiveBookMeta() {
     var metaBox = document.getElementById("active-book-meta");
     if (!metaBox) return;
@@ -1790,51 +2087,21 @@ function renderActiveBookMeta() {
     var leftGroup = document.createElement("div");
     leftGroup.className = "book-meta-left";
 
-    function createCoverPlaceholder(bookTitle) {
-        var ph = document.createElement("div");
-        ph.className = "book-cover-thumb book-cover-placeholder";
-        var raw = (bookTitle || "").trim();
-        ph.setAttribute("aria-label", raw || "表紙なし");
-        var displayTitle = raw;
-        if (displayTitle.length > 6) {
-            displayTitle = displayTitle.slice(0, 6);
-        }
-        ph.textContent = displayTitle || "無題";
-        return ph;
-    }
+    var coverElem = createCoverElement(book, "thumb");
+    leftGroup.appendChild(coverElem);
 
-    var rawCachedCover = book.cover || bookCoverCache[book.id] || (book.isbn ? bookCoverCache[book.isbn] : "");
-    var cachedCover = sanitizeCoverUrl(rawCachedCover);
-    if (cachedCover) {
-        var coverImg = document.createElement("img");
-        coverImg.className = "book-cover-thumb";
-        coverImg.referrerPolicy = "no-referrer";
-        coverImg.alt = book.title;
-        coverImg.src = cachedCover;
-        coverImg.addEventListener("error", function() {
-            var ph = createCoverPlaceholder(book.title);
-            if (coverImg.parentNode) {
-                coverImg.parentNode.replaceChild(ph, coverImg);
+    // 表紙URLやカラーが未設定の書籍は、1ページ表示につき1回だけopenBD・Google Booksから自動取得を試みる（429連打防止）
+    if (!book.cover && !bookCoverCache["tried_" + book.id]) {
+        bookCoverCache["tried_" + book.id] = "1";
+        fetchCoverUrlForBook(book).then(function(url) {
+            if (url && !book.cover) {
+                book.cover = url;
+                bookCoverCache[book.id] = url;
+                if (book.isbn) bookCoverCache[book.isbn] = url;
+                saveAllSheets(true);
+                renderActiveBookMeta();
             }
         });
-        leftGroup.appendChild(coverImg);
-    } else {
-        var placeholder = createCoverPlaceholder(book.title);
-        leftGroup.appendChild(placeholder);
-
-        // 表紙URLが未設定の書籍は、1ページ表示につき1回だけopenBD・Google Booksから自動再取得を試みる（429連打防止）
-        if (!bookCoverCache["tried_" + book.id]) {
-            bookCoverCache["tried_" + book.id] = "1";
-            fetchCoverUrlForBook(book).then(function(url) {
-                if (url) {
-                    book.cover = url;
-                    bookCoverCache[book.id] = url;
-                    if (book.isbn) bookCoverCache[book.isbn] = url;
-                    saveAllSheets(true);
-                    renderActiveBookMeta();
-                }
-            });
-        }
     }
 
     var infoSpan = document.createElement("span");
@@ -1849,6 +2116,16 @@ function renderActiveBookMeta() {
 
     var rightGroup = document.createElement("div");
     rightGroup.className = "book-meta-actions";
+
+    var coverBtn = document.createElement("button");
+    coverBtn.type = "button";
+    coverBtn.className = "btn-book-cover";
+    coverBtn.title = "この本の書影・表紙カラーを設定";
+    coverBtn.textContent = "書影の設定";
+    coverBtn.addEventListener("click", function() {
+        openBookCoverModal(book.id);
+    });
+    rightGroup.appendChild(coverBtn);
 
     var bookIdx = -1;
     for (var i = 0; i < bookList.length; i++) {
@@ -2333,23 +2610,56 @@ function resolveMeaningModal(action) {
     renderCurrentMeaningConfirmModal();
 }
 
-// 編集画面で「辞書から意味を一括補完」ボタンを押したとき
+// 「辞書補完」ボタンを押したとき（選択中の本、または全シートの未補完単語を一括検索）
 function batchFetchMissingMeanings() {
-    var editBookId = getEffectiveBookIdForEdit();
-    var textarea = document.getElementById("bulk-input");
-    if (textarea && editPageBookId === editBookId) {
-        spliceTextareaIntoDraft(textarea.value);
-    }
-    var hadUnsaved = hasUnsavedEditorChanges();
-    sheetLines[editBookId] = editDraftLines.slice();
     deduplicateAllSheets();
-    if (hadUnsaved) {
-        saveAllSheets(false);
-    }
-    editDraftLines = (sheetLines[editBookId] || []).slice();
-    loadEditPageIntoTextarea();
-    refreshUI();
 
+    if (currentBookTab === "all_books") {
+        var totalMissing = 0;
+        var bookIds = ["uncategorized"].concat(bookList.map(function(b) { return b.id; }));
+        var missingByBook = {};
+
+        bookIds.forEach(function(bid) {
+            var lines = sheetLines[bid] || [];
+            var words = [];
+            lines.forEach(function(line) {
+                var trimmed = line.trim();
+                if (trimmed && !/[:：\t]/.test(trimmed)) {
+                    words.push(trimmed);
+                }
+            });
+            if (words.length > 0) {
+                missingByBook[bid] = words;
+                totalMissing += words.length;
+            }
+        });
+
+        if (totalMissing === 0) {
+            showSaveFeedback("意味が未登録の単語はありません");
+            showQuickAddStatus("意味が未登録の単語はありません", "info", 3000);
+            return;
+        }
+
+        var btn = document.getElementById("batch-dict-btn");
+        if (btn) btn.disabled = true;
+        showSaveFeedback(totalMissing + " 件の意味を辞書から検索中...");
+        showQuickAddStatus(totalMissing + " 件の意味を辞書から検索中...", "info");
+
+        var delay = 0;
+        Object.keys(missingByBook).forEach(function(bid) {
+            setTimeout(function() {
+                autoFillMeaningsForSheetWords(bid, missingByBook[bid]);
+            }, delay);
+            delay += 300;
+        });
+
+        setTimeout(function() {
+            if (btn) btn.disabled = false;
+        }, 1500 + delay);
+        return;
+    }
+
+    var editBookId = getEffectiveBookIdForEdit();
     var lines = sheetLines[editBookId] || [];
     var missingWords = [];
 
@@ -2361,13 +2671,15 @@ function batchFetchMissingMeanings() {
     });
 
     if (missingWords.length === 0) {
-        showSaveFeedback("意味が未登録の単語はありません");
+        showSaveFeedback("このシートに意味が未登録の単語はありません");
+        showQuickAddStatus("このシートに意味が未登録の単語はありません", "info", 3000);
         return;
     }
 
     var btn = document.getElementById("batch-dict-btn");
     if (btn) btn.disabled = true;
     showSaveFeedback(missingWords.length + " 件の意味を辞書から検索中...");
+    showQuickAddStatus(missingWords.length + " 件の意味を辞書から検索中...", "info");
 
     autoFillMeaningsForSheetWords(editBookId, missingWords);
     setTimeout(function() {
@@ -2704,23 +3016,8 @@ function parseFullBulkData(text) {
     }
 }
 
-// ⑤ 編集画面での入力イベントハンドラ（保存ボタンを押すまで未保存ドラフトとして管理）
-function handleBulkInput() {
-    var textarea = document.getElementById("bulk-input");
-    if (!textarea) return;
-
-    var editBookId = getEffectiveBookIdForEdit();
-    if (editPageBookId === editBookId) {
-        spliceTextareaIntoDraft(textarea.value);
-    }
-
-    updateWordCountBadge(editDraftLines.length);
-    renderEditPager(editDraftLines.length);
-    updateSaveButtonState();
-}
-
 function updateWordCountBadge(count) {
-    var wordCountElem = document.getElementById("word-count");
+    var wordCountElem = document.getElementById("word-count") || document.getElementById("filtered-count");
     if (wordCountElem) {
         wordCountElem.innerText = count + " 件";
     }
@@ -2823,7 +3120,17 @@ function createWordCardElement(item) {
     if (sourceText) {
         var sourceTag = document.createElement("div");
         sourceTag.className = "word-source";
-        sourceTag.textContent = sourceText;
+        var b = getBookById(item.bookId);
+        if (b) {
+            var sDot = document.createElement("span");
+            sDot.className = "word-source-dot";
+            var cInfo = getBookCoverInfo(b);
+            sDot.style.backgroundColor = (cInfo.type === "color") ? cInfo.value : getDeterministicBookColor(b.title);
+            sourceTag.appendChild(sDot);
+        }
+        var sTextNode = document.createElement("span");
+        sTextNode.textContent = sourceText;
+        sourceTag.appendChild(sTextNode);
         card.appendChild(sourceTag);
     }
 
@@ -3031,9 +3338,10 @@ function renderWordCards(filterKeyword) {
 
     // 1. 選択中の本タブで絞り込み
     var bookScopedList = wordList;
-    if (currentBookTab !== "all_books") {
+    var targetBookId = isEditPage() ? getEffectiveBookIdForEdit() : currentBookTab;
+    if (targetBookId !== "all_books") {
         bookScopedList = wordList.filter(function(item) {
-            return item.bookId === currentBookTab;
+            return item.bookId === targetBookId;
         });
     }
 
@@ -3063,14 +3371,20 @@ function renderWordCards(filterKeyword) {
         emptyDiv.className = "empty-state";
         if (filterKeyword && filterKeyword.trim() !== "") {
             emptyDiv.textContent = "「" + filterKeyword + "」に一致する単語は見つかりませんでした";
+        } else if (isEditPage()) {
+            emptyDiv.textContent = "このシートにはまだ単語が登録されていません。上の新規追加欄から単語を追加できます。";
         } else {
             emptyDiv.appendChild(document.createTextNode("このシートにはまだ単語が登録されていません。"));
             emptyDiv.appendChild(document.createElement("br"));
-            var addLink = document.createElement("a");
-            addLink.href = "./edit.html";
-            addLink.className = "link-add-empty";
-            addLink.textContent = "単語を登録・編集";
-            emptyDiv.appendChild(addLink);
+            var addBtn = document.createElement("button");
+            addBtn.type = "button";
+            addBtn.className = "btn btn-primary link-add-empty";
+            addBtn.textContent = "＋ 単語を追加する";
+            addBtn.style.marginTop = "10px";
+            addBtn.addEventListener("click", function() {
+                openWordAddModal();
+            });
+            emptyDiv.appendChild(addBtn);
         }
         container.appendChild(emptyDiv);
         return;
@@ -3250,10 +3564,9 @@ function clearAllWords() {
     var title = getBookTitleById(editBookId);
     if (confirm("「" + title + "」シートに登録されている単語をすべて消去しますか？")) {
         sheetLines[editBookId] = [];
-        editDraftLines = [];
         saveAllSheets(false);
-        loadEditPageIntoTextarea();
         refreshUI();
+        showQuickAddStatus("「" + title + "」シートの単語を全消去しました", "info", 3000);
     }
 }
 
@@ -3399,8 +3712,23 @@ function setDrawResult(selected) {
     }
     var resultSource = document.getElementById("result-source");
     if (resultSource) {
+        resultSource.textContent = "";
         var srcText = getSourceTagText(selected.bookId);
-        resultSource.textContent = srcText;
-        resultSource.style.display = srcText ? "" : "none";
+        if (srcText) {
+            var b = getBookById(selected.bookId);
+            if (b) {
+                var sDot = document.createElement("span");
+                sDot.className = "word-source-dot";
+                var cInfo = getBookCoverInfo(b);
+                sDot.style.backgroundColor = (cInfo.type === "color") ? cInfo.value : getDeterministicBookColor(b.title);
+                resultSource.appendChild(sDot);
+            }
+            var sTextNode = document.createElement("span");
+            sTextNode.textContent = srcText;
+            resultSource.appendChild(sTextNode);
+            resultSource.style.display = "";
+        } else {
+            resultSource.style.display = "none";
+        }
     }
 }
