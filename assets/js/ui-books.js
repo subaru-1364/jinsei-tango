@@ -870,13 +870,24 @@ function renderActiveBookMeta() {
         });
     }
 
-    var infoSpan = document.createElement("span");
-    infoSpan.className = "book-meta-text";
-    var details = book.title;
-    if (book.author) details += " / " + book.author;
-    if (book.isbn) details += " (ISBN: " + book.isbn + ")";
-    infoSpan.textContent = details;
-    leftGroup.appendChild(infoSpan);
+    var infoWrap = document.createElement("div");
+    infoWrap.className = "book-meta-info";
+
+    var titleDiv = document.createElement("div");
+    titleDiv.className = "book-meta-title";
+    titleDiv.textContent = book.title;
+    infoWrap.appendChild(titleDiv);
+
+    var subParts = [];
+    if (book.author) subParts.push(book.author);
+    if (book.isbn) subParts.push("ISBN: " + book.isbn);
+    if (subParts.length > 0) {
+        var subDiv = document.createElement("div");
+        subDiv.className = "book-meta-sub";
+        subDiv.textContent = subParts.join(" / ");
+        infoWrap.appendChild(subDiv);
+    }
+    leftGroup.appendChild(infoWrap);
 
     metaBox.appendChild(leftGroup);
 
