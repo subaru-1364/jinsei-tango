@@ -108,7 +108,7 @@ body {
     font-size: 0.92rem;
 }
 
-/* 本棚（ISBN / 書籍ごとシート） */
+/* 本棚（ISBN / 書籍ごと） */
 .book-shelf-card {
     display: flex;
     flex-direction: column;
@@ -267,8 +267,37 @@ body {
 
 .book-tabs {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.35rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.35rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #dcdad0 transparent;
+}
+
+.book-tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.book-tabs::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.book-tabs::-webkit-scrollbar-thumb {
+    background: #dcdad0;
+    border-radius: 999px;
+}
+
+.book-tabs::-webkit-scrollbar-thumb:hover {
+    background: #b8b5a8;
+}
+
+.book-tabs.is-reordering {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding-bottom: 0;
 }
 
 .book-tab {
@@ -287,6 +316,7 @@ body {
     transition: all 0.15s;
     max-width: 140px;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .book-tab-color-dot {
@@ -309,6 +339,33 @@ body {
     white-space: nowrap;
     min-width: 0;
     flex: 1;
+}
+
+.book-tab-pin-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: 0.05rem;
+    color: #b45309;
+    opacity: 0.85;
+}
+
+.book-tab.is-pinned {
+    border-color: #d8d3c5;
+}
+
+.book-tab.is-pinned.active {
+    border-color: var(--primary-color);
+}
+
+.book-tab-divider {
+    width: 1px;
+    height: 16px;
+    background: #d8d6cb;
+    margin: 0 0.15rem;
+    align-self: center;
+    flex-shrink: 0;
 }
 
 .book-tab-count {
@@ -496,6 +553,40 @@ body {
     word-break: break-word;
 }
 
+.btn-book-pin {
+    background: #f4f3ef;
+    border: 1px solid #d4d2c8;
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.12rem 0.5rem;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.15s;
+}
+
+.btn-book-pin:hover {
+    background: #eae8e0;
+    border-color: #b45309;
+    color: #b45309;
+}
+
+.btn-book-pin.is-pinned {
+    background: #fef3c7;
+    border-color: #fde68a;
+    color: #92400e;
+}
+
+.btn-book-pin.is-pinned:hover {
+    background: #fde68a;
+    border-color: #f59e0b;
+}
+
 .btn-book-cover {
     background: #f4f3ef;
     border: 1px solid #d4d2c8;
@@ -671,6 +762,24 @@ body {
 
 .icon-subtle {
     opacity: 0.7;
+}
+
+.icon-pin {
+    width: 12px;
+    height: 12px;
+    transform: rotate(45deg);
+    transform-origin: center;
+    transition: transform 0.15s ease, fill 0.15s ease;
+}
+
+.book-tab-pin-badge .icon-pin {
+    width: 11px;
+    height: 11px;
+}
+
+.book-tab.is-pinned .icon-pin,
+.btn-book-pin.is-pinned .icon-pin {
+    fill: currentColor;
 }
 
 .btn-nav:hover {
@@ -1609,32 +1718,161 @@ body {
 }
 
 
-/* 本棚タグの折りたたみ */
-.book-tabs.is-collapsed {
-    max-height: 4.6rem;
-    overflow: hidden;
+/* ==================== 本クイック検索モーダル ==================== */
+.book-search-modal-card {
+    max-width: 480px;
+    width: 92%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
 }
 
-.btn-tabs-toggle {
-    display: block;
-    margin: 0.45rem auto 0;
-    padding: 0.25rem 0.9rem;
+.book-search-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-height: 0;
+    flex: 1;
+}
+
+.book-search-input-wrap {
+    position: relative;
+}
+
+.book-search-filter-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    border: 1px solid #dcdad0;
+    border-radius: 6px;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.book-search-filter-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(180, 83, 9, 0.15);
+}
+
+.book-search-modal-list {
+    overflow-y: auto;
+    max-height: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding-right: 0.2rem;
+}
+
+.book-search-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 6px;
+    border: 1px solid #e5e3d8;
+    background: #fdfdfc;
+    cursor: pointer;
     font-family: inherit;
-    font-size: 0.75rem;
+    text-align: left;
+    transition: all 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.book-search-item:hover,
+.book-search-item:focus {
+    background: #f5f3eb;
+    border-color: #b45309;
+    outline: none;
+}
+
+.book-search-item.is-active {
+    background: #fef3c7;
+    border-color: #f59e0b;
+}
+
+.book-search-item-left {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.book-search-item-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.book-search-item-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.book-search-item-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.book-search-item-author {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 0.1rem;
+}
+
+.book-search-item-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.book-search-pin-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #b45309;
+}
+
+.book-search-active-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #92400e;
+    background: #fde68a;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}
+
+.book-search-item-count {
+    font-size: 0.72rem;
     font-weight: 600;
     color: var(--text-secondary);
-    background: none;
-    border: 1px solid #dcdad0;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.12rem 0.45rem;
     border-radius: 999px;
-    cursor: pointer;
 }
 
-.btn-tabs-toggle:hover {
-    color: var(--text-primary);
-    background-color: #eae8e0;
+.book-search-empty {
+    padding: 1.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
 }
 
-/* 出典（シート名）表示：控えめに */
+/* 出典（本・書籍名）表示：控えめに */
 .word-source {
     display: inline-flex;
     align-items: center;

@@ -8,17 +8,17 @@
     <link rel="icon" type="image/png" href="./assets/icon.png?v=6">
     <link rel="apple-touch-icon" href="./assets/icon.png?v=6">
 
-    <link rel="stylesheet" href="./assets/main.css?v=79">
+    <link rel="stylesheet" href="./assets/main.css?v=84">
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js" defer></script>
-    <script src="./assets/js/config.js?v=79" defer></script>
-    <script src="./assets/js/storage.js?v=79" defer></script>
-    <script src="./assets/js/api.js?v=79" defer></script>
-    <script src="./assets/js/kuji.js?v=79" defer></script>
-    <script src="./assets/js/ui-books.js?v=79" defer></script>
-    <script src="./assets/js/ui-words.js?v=79" defer></script>
-    <script src="./assets/js/app.js?v=79" defer></script>
+    <script src="./assets/js/config.js?v=84" defer></script>
+    <script src="./assets/js/storage.js?v=84" defer></script>
+    <script src="./assets/js/api.js?v=84" defer></script>
+    <script src="./assets/js/kuji.js?v=84" defer></script>
+    <script src="./assets/js/ui-books.js?v=84" defer></script>
+    <script src="./assets/js/ui-words.js?v=84" defer></script>
+    <script src="./assets/js/app.js?v=84" defer></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -63,11 +63,15 @@
                 <div class="book-shelf-top">
                     <span class="sub-title">
                         <svg class="icon-line icon-subtle" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h4.2c1 0 1.3.4 1.3 1.2v8.3c0-.6-.5-1-1.3-1H2.5V3.5zm11 0H9.3c-1 0-1.3.4-1.3 1.2v8.3c0-.6.5-1 1.3-1h4.2V3.5z"/></svg>
-                        本棚・シート
+                        本棚
                     </span>
                     <div class="book-shelf-actions">
+                        <button type="button" id="book-search-jump-btn" class="btn-isbn-toggle btn-book-search-jump" onclick="openBookSearchModal()" title="本を検索して素早く移動">
+                            <svg class="icon-line" viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 6.5a5 5 0 1 1-10 0 5 5 0 0 1 10 0zm-1.5 4.5 4 4"/></svg>
+                            本を探す
+                        </button>
                         <button type="button" id="book-reorder-btn" class="btn-isbn-toggle btn-book-reorder" onclick="toggleBookReorderMode()" style="display: none;">並び替え</button>
-                        <button type="button" class="btn-isbn-toggle" onclick="toggleIsbnPanel()">＋ 本・シートを追加</button>
+                        <button type="button" class="btn-isbn-toggle" onclick="toggleIsbnPanel()">＋ 本を追加</button>
                     </div>
                 </div>
 
@@ -76,12 +80,11 @@
                         <input type="text" id="isbn-input" placeholder="本のタイトル・著者名 または ISBNコード" onkeydown="handleIsbnKey(event)">
                         <button type="button" id="isbn-submit-btn" class="btn-quick-add" onclick="addBookByIsbn()">検索・追加</button>
                     </div>
-                    <div id="isbn-status" class="isbn-status">本のタイトルやISBNから書名・著者・表紙を検索します（自由なシート名としても作成可能）</div>
+                    <div id="isbn-status" class="isbn-status">本のタイトルやISBNから書名・著者・表紙を検索します（オリジナルの本としても作成可能）</div>
                     <div id="isbn-search-results" class="isbn-search-results"></div>
                 </div>
 
-                <div id="book-tabs" class="book-tabs is-collapsed" role="tablist" aria-label="書籍の切り替え"></div>
-                <button type="button" id="book-tabs-toggle" class="btn-tabs-toggle" aria-expanded="false" aria-controls="book-tabs" onclick="toggleBookTabsExpanded()" style="display: none;">すべて表示</button>
+                <div id="book-tabs" class="book-tabs" role="tablist" aria-label="書籍の切り替え"></div>
                 <div id="active-book-meta" class="active-book-meta" style="display: none;"></div>
             </section>
 
@@ -118,7 +121,7 @@
                     </div>
                     <div class="list-header-actions">
                         <span id="save-feedback" class="save-feedback" aria-live="polite"></span>
-                        <button type="button" id="batch-dict-btn" class="btn btn-sub" onclick="batchFetchMissingMeanings()" title="このシート内で意味が未登録の単語を辞書から一括検索">辞書補完</button>
+                        <button type="button" id="batch-dict-btn" class="btn btn-sub" onclick="batchFetchMissingMeanings()" title="この本の中で意味が未登録の単語を辞書から一括検索">辞書補完</button>
                     </div>
                 </div>
 
@@ -159,6 +162,25 @@
                         <button type="button" id="modal-known-btn" class="btn btn-sub btn-modal-known" onclick="resolveMeaningModal('known')">意味なしで完了（既知）</button>
                     </div>
                     <button type="button" id="modal-save-btn" class="btn btn-primary btn-modal-save" onclick="resolveMeaningModal('save')">この意味で登録する</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 本クイック検索モーダル -->
+        <div id="book-search-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="book-search-modal-title">
+            <div class="card modal-card book-search-modal-card">
+                <div class="modal-header">
+                    <span class="count-badge" id="book-search-total-count">全0冊</span>
+                    <h3 id="book-search-modal-title" class="modal-word-title">本を探す</h3>
+                </div>
+                <div class="book-search-modal-body">
+                    <div class="book-search-input-wrap">
+                        <input type="search" id="book-search-filter-input" class="inline-edit-input book-search-filter-input" placeholder="書名・著者名で絞り込み..." autocomplete="off">
+                    </div>
+                    <div id="book-search-modal-list" class="book-search-modal-list" role="listbox"></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-sub" onclick="closeBookSearchModal()">閉じる</button>
                 </div>
             </div>
         </div>
@@ -227,9 +249,9 @@
                     <h3 id="word-add-modal-title" class="modal-word-title">単語を追加</h3>
                 </div>
 
-                <!-- 登録先シート選択 -->
+                <!-- 登録先の本を選択 -->
                 <div class="word-add-target-row">
-                    <label for="word-add-book-select" class="word-add-label">登録先の本／シート：</label>
+                    <label for="word-add-book-select" class="word-add-label">登録先の本：</label>
                     <select id="word-add-book-select" class="word-add-select"></select>
                 </div>
 

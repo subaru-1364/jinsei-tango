@@ -82,9 +82,15 @@ window.addEventListener("DOMContentLoaded", function() {
 
     window.addEventListener("keydown", function(e) {
         if (e.key === "Escape") {
+            var bsm = document.getElementById("book-search-modal");
+            if (bsm && bsm.style.display !== "none") {
+                closeBookSearchModal();
+                return;
+            }
             var wam = document.getElementById("word-add-modal");
             if (wam && wam.style.display !== "none") {
                 closeWordAddModal();
+                return;
             }
             var cm = document.getElementById("book-cover-modal");
             if (cm && cm.style.display !== "none") {

@@ -11,7 +11,7 @@ function resetDrawDeck() {
 }
 
 function getActiveDrawPool() {
-    // 選択中のシートに関わらず、常に全登録単語から抽選
+    // 選択中の本に関わらず、常に全登録単語から抽選
     return wordList;
 }
 

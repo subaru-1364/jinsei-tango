@@ -462,7 +462,7 @@ function resolveMeaningModal(action) {
     renderCurrentMeaningConfirmModal();
 }
 
-// 一覧ヘッダーの「辞書補完」ボタン（選択中タブまたは全シートの未設定単語を一括検索）
+// 一覧ヘッダーの「辞書補完」ボタン（選択中タブまたは全書籍の未設定単語を一括検索）
 function batchFetchMissingMeanings() {
     var missingItems = wordList.filter(function(item) {
         if (currentBookTab !== "all_books" && item.bookId !== currentBookTab) {
@@ -475,7 +475,7 @@ function batchFetchMissingMeanings() {
     if (missingItems.length === 0) {
         var emptyMsg = (currentBookTab === "all_books")
             ? "意味が未登録の単語はありません"
-            : "このシートに意味が未登録の単語はありません";
+            : "この本に意味が未登録の単語はありません";
         showSaveFeedback(emptyMsg);
         return;
     }
@@ -895,7 +895,7 @@ function renderWordCards(filterKeyword) {
         if (filterKeyword && filterKeyword.trim() !== "") {
             emptyDiv.textContent = "「" + filterKeyword + "」に一致する単語は見つかりませんでした";
         } else {
-            emptyDiv.appendChild(document.createTextNode("このシートにはまだ単語が登録されていません。"));
+            emptyDiv.appendChild(document.createTextNode("この本にはまだ単語が登録されていません。"));
             emptyDiv.appendChild(document.createElement("br"));
             var addBtn = document.createElement("button");
             addBtn.type = "button";

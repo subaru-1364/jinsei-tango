@@ -84,6 +84,7 @@ function normalizeBookRecord(raw, fallbackIdx) {
         title: title,
         author: String(raw.author || "").trim(),
         cover: cover,
+        pinned: Boolean(raw.pinned),
         order: typeof raw.order === "number" ? raw.order : (fallbackIdx * 10),
         createdAt: typeof raw.createdAt === "number" ? raw.createdAt : 0
     };
@@ -141,7 +142,7 @@ function getEffectiveBookIdForEdit() {
     return getBookById(currentBookTab) ? currentBookTab : "uncategorized";
 }
 
-// アプリ全体（すべてのシート）で単語がすでに登録されているかチェック
+// アプリ全体（すべての本）で単語がすでに登録されているかチェック
 function findExistingWordLocation(targetWord, excludeWordId) {
     var cleanTarget = normalizeWordKey(targetWord);
     if (!cleanTarget) return null;
@@ -503,6 +504,7 @@ function toCloudBookRecord(book, idx) {
         title: book.title || "無題の書籍",
         author: book.author || "",
         cover: book.cover || "",
+        pinned: Boolean(book.pinned),
         order: idx * 10,
         createdAt: book.createdAt || 0
     };
@@ -591,7 +593,7 @@ function isDataEqual(booksA, wordsA, booksB, wordsB) {
     if (booksA.length !== booksB.length || wordsA.length !== wordsB.length) return false;
     for (var i = 0; i < booksA.length; i++) {
         var ba = booksA[i], bb = booksB[i];
-        if (ba.id !== bb.id || ba.title !== bb.title || ba.author !== bb.author || ba.isbn !== bb.isbn || ba.cover !== bb.cover) {
+        if (ba.id !== bb.id || ba.title !== bb.title || ba.author !== bb.author || ba.isbn !== bb.isbn || ba.cover !== bb.cover || Boolean(ba.pinned) !== Boolean(bb.pinned)) {
             return false;
         }
     }
