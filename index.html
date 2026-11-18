@@ -8,11 +8,17 @@
     <link rel="icon" type="image/png" href="./assets/icon.png?v=6">
     <link rel="apple-touch-icon" href="./assets/icon.png?v=6">
 
-    <link rel="stylesheet" href="./assets/main.css?v=75">
+    <link rel="stylesheet" href="./assets/main.css?v=76">
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js" defer></script>
-    <script src="./assets/main.js?v=75" defer></script>
+    <script src="./assets/js/config.js?v=76" defer></script>
+    <script src="./assets/js/storage.js?v=76" defer></script>
+    <script src="./assets/js/api.js?v=76" defer></script>
+    <script src="./assets/js/kuji.js?v=76" defer></script>
+    <script src="./assets/js/ui-books.js?v=76" defer></script>
+    <script src="./assets/js/ui-words.js?v=76" defer></script>
+    <script src="./assets/js/app.js?v=76" defer></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -111,6 +117,7 @@
                         <span id="filtered-count" class="count-badge">0 件</span>
                     </div>
                     <div class="list-header-actions">
+                        <span id="save-feedback" class="save-feedback" aria-live="polite"></span>
                         <button type="button" id="batch-dict-btn" class="btn btn-sub" onclick="batchFetchMissingMeanings()" title="このシート内で意味が未登録の単語を辞書から一括検索">辞書補完</button>
                     </div>
                 </div>
