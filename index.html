@@ -8,17 +8,17 @@
     <link rel="icon" type="image/png" href="./assets/icon.png?v=6">
     <link rel="apple-touch-icon" href="./assets/icon.png?v=6">
 
-    <link rel="stylesheet" href="./assets/main.css?v=84">
+    <link rel="stylesheet" href="./assets/main.css?v=85">
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js" defer></script>
-    <script src="./assets/js/config.js?v=84" defer></script>
-    <script src="./assets/js/storage.js?v=84" defer></script>
-    <script src="./assets/js/api.js?v=84" defer></script>
-    <script src="./assets/js/kuji.js?v=84" defer></script>
-    <script src="./assets/js/ui-books.js?v=84" defer></script>
-    <script src="./assets/js/ui-words.js?v=84" defer></script>
-    <script src="./assets/js/app.js?v=84" defer></script>
+    <script src="./assets/js/config.js?v=85" defer></script>
+    <script src="./assets/js/storage.js?v=85" defer></script>
+    <script src="./assets/js/api.js?v=85" defer></script>
+    <script src="./assets/js/kuji.js?v=85" defer></script>
+    <script src="./assets/js/ui-books.js?v=85" defer></script>
+    <script src="./assets/js/ui-words.js?v=85" defer></script>
+    <script src="./assets/js/app.js?v=85" defer></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -58,6 +58,27 @@
                 </div>
             </header>
 
+            <!-- ランダムくじ引き（山札シャッフル方式） -->
+            <section class="card draw-section">
+                <div class="draw-row">
+                    <div class="draw-title-group">
+                        <span class="sub-title">
+                            <svg class="icon-line icon-subtle" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h8.5l-2-2M13.5 10.5H5l2 2"/></svg>
+                            ランダムピックアップ
+                        </span>
+                    </div>
+                    <button id="draw-btn" class="btn btn-primary btn-draw-compact" onclick="drawWord()">
+                        引く
+                    </button>
+                </div>
+                
+                <div id="draw-result" class="draw-result-box" style="display: none;" aria-live="polite">
+                    <div id="result-word" class="result-word"></div>
+                    <div id="result-meaning" class="result-meaning"></div>
+                    <div id="result-source" class="word-source" style="display: none;"></div>
+                </div>
+            </section>
+
             <!-- 本棚（ISBN / 書籍ごと）セレクター -->
             <section class="card book-shelf-card">
                 <div class="book-shelf-top">
@@ -86,27 +107,6 @@
 
                 <div id="book-tabs" class="book-tabs" role="tablist" aria-label="書籍の切り替え"></div>
                 <div id="active-book-meta" class="active-book-meta" style="display: none;"></div>
-            </section>
-
-            <!-- ランダムくじ引き（山札シャッフル方式） -->
-            <section class="card draw-section">
-                <div class="draw-row">
-                    <div class="draw-title-group">
-                        <span class="sub-title">
-                            <svg class="icon-line icon-subtle" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h8.5l-2-2M13.5 10.5H5l2 2"/></svg>
-                            ランダムピックアップ
-                        </span>
-                    </div>
-                    <button id="draw-btn" class="btn btn-primary btn-draw-compact" onclick="drawWord()">
-                        引く
-                    </button>
-                </div>
-                
-                <div id="draw-result" class="draw-result-box" style="display: none;" aria-live="polite">
-                    <div id="result-word" class="result-word"></div>
-                    <div id="result-meaning" class="result-meaning"></div>
-                    <div id="result-source" class="word-source" style="display: none;"></div>
-                </div>
             </section>
 
             <!-- 単語一覧・検索 -->
