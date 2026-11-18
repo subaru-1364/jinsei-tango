@@ -8,17 +8,17 @@
     <link rel="icon" type="image/png" href="./assets/icon.png?v=6">
     <link rel="apple-touch-icon" href="./assets/icon.png?v=6">
 
-    <link rel="stylesheet" href="./assets/main.css?v=86">
+    <link rel="stylesheet" href="./assets/main.css?v=89">
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js" defer></script>
-    <script src="./assets/js/config.js?v=86" defer></script>
-    <script src="./assets/js/storage.js?v=86" defer></script>
-    <script src="./assets/js/api.js?v=86" defer></script>
-    <script src="./assets/js/kuji.js?v=86" defer></script>
-    <script src="./assets/js/ui-books.js?v=86" defer></script>
-    <script src="./assets/js/ui-words.js?v=86" defer></script>
-    <script src="./assets/js/app.js?v=86" defer></script>
+    <script src="./assets/js/config.js?v=89" defer></script>
+    <script src="./assets/js/storage.js?v=89" defer></script>
+    <script src="./assets/js/api.js?v=89" defer></script>
+    <script src="./assets/js/kuji.js?v=89" defer></script>
+    <script src="./assets/js/ui-books.js?v=89" defer></script>
+    <script src="./assets/js/ui-words.js?v=89" defer></script>
+    <script src="./assets/js/app.js?v=89" defer></script>
 </head>
 <body>
     <div class="app-wrapper">
@@ -87,12 +87,18 @@
                         本棚
                     </span>
                     <div class="book-shelf-actions">
-                        <button type="button" id="book-search-jump-btn" class="btn-isbn-toggle btn-book-search-jump" onclick="openBookSearchModal()" title="本を検索して素早く移動">
+                        <button type="button" id="book-search-jump-btn" class="btn-shelf-action" onclick="openBookSearchModal()" title="探す">
                             <svg class="icon-line" viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 6.5a5 5 0 1 1-10 0 5 5 0 0 1 10 0zm-1.5 4.5 4 4"/></svg>
-                            本を探す
+                            <span>探す</span>
                         </button>
-                        <button type="button" id="book-reorder-btn" class="btn-isbn-toggle btn-book-reorder" onclick="toggleBookReorderMode()" style="display: none;">並び替え</button>
-                        <button type="button" class="btn-isbn-toggle" onclick="toggleIsbnPanel()">＋ 本を追加</button>
+                        <button type="button" id="book-reorder-btn" class="btn-shelf-action btn-book-reorder" onclick="toggleBookReorderMode()" title="並び替え" style="display: none;">
+                            <svg class="icon-line" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5h10M9 2l4 3-4 3M13 11H3m4-3-4 3 4 3"/></svg>
+                            <span>並び替え</span>
+                        </button>
+                        <button type="button" id="book-add-toggle-btn" class="btn-shelf-action" onclick="toggleIsbnPanel()" title="追加">
+                            <svg class="icon-line" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2v9.6M3.2 8h9.6"/></svg>
+                            <span>追加</span>
+                        </button>
                     </div>
                 </div>
 

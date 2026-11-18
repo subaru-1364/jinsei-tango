@@ -387,8 +387,26 @@ function renderBookTabs() {
     if (reorderBtn) {
         if (bookList.length > 1) {
             reorderBtn.style.display = "inline-flex";
-            reorderBtn.textContent = isBookReorderMode ? "✓ 並び替え完了" : "並び替え";
             reorderBtn.classList.toggle("active", isBookReorderMode);
+            reorderBtn.title = isBookReorderMode ? "完了" : "並び替え";
+            reorderBtn.setAttribute("aria-label", isBookReorderMode ? "完了" : "並び替え");
+            reorderBtn.textContent = "";
+            var reorderSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            reorderSvg.setAttribute("class", "icon-line");
+            reorderSvg.setAttribute("viewBox", "0 0 16 16");
+            reorderSvg.setAttribute("aria-hidden", "true");
+            var reorderPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            if (isBookReorderMode) {
+                reorderPath.setAttribute("d", "M3 8.5 6.5 12 13 4");
+            } else {
+                reorderPath.setAttribute("d", "M3 5h10M9 2l4 3-4 3M13 11H3m4-3-4 3 4 3");
+            }
+            reorderSvg.appendChild(reorderPath);
+            reorderBtn.appendChild(reorderSvg);
+
+            var labelSpan = document.createElement("span");
+            labelSpan.textContent = isBookReorderMode ? "完了" : "並び替え";
+            reorderBtn.appendChild(labelSpan);
         } else {
             reorderBtn.style.display = "none";
             reorderBtn.classList.remove("active");
