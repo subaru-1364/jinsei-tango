@@ -1717,6 +1717,11 @@ body {
     justify-content: center;
 }
 
+.list-pager-bottom {
+    margin-top: 1.25rem;
+    margin-bottom: 0.25rem;
+}
+
 /* ==================== 単語追加モーダル ==================== */
 .word-add-card {
     max-width: 480px;

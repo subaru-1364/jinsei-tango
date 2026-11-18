@@ -888,6 +888,8 @@ function renderWordCards(filterKeyword) {
     if (displayList.length === 0) {
         var emptyPager = document.getElementById("list-pager");
         if (emptyPager) emptyPager.style.display = "none";
+        var emptyPagerBottom = document.getElementById("list-pager-bottom");
+        if (emptyPagerBottom) emptyPagerBottom.style.display = "none";
         var emptyDiv = document.createElement("div");
         emptyDiv.className = "empty-state";
         if (filterKeyword && filterKeyword.trim() !== "") {
@@ -914,15 +916,25 @@ function renderWordCards(filterKeyword) {
     var pageStart = listPageIndex * LIST_PAGE_SIZE;
     var visibleList = displayList.slice(pageStart, pageStart + LIST_PAGE_SIZE);
 
+    function handlePageChange(idx) {
+        listPageIndex = idx;
+        editingWordId = null;
+        var si = document.getElementById("search-input");
+        renderWordCards(si ? si.value : "");
+        var listCard = document.querySelector(".list-card");
+        if (listCard) {
+            listCard.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }
+
     var listPager = document.getElementById("list-pager");
     if (listPager) {
-        renderPageNumbers(listPager, displayList.length, LIST_PAGE_SIZE, listPageIndex, function(idx) {
-            listPageIndex = idx;
-            editingWordId = null;
-            var si = document.getElementById("search-input");
-            renderWordCards(si ? si.value : "");
-            container.scrollTop = 0;
-        });
+        renderPageNumbers(listPager, displayList.length, LIST_PAGE_SIZE, listPageIndex, handlePageChange);
+    }
+
+    var listPagerBottom = document.getElementById("list-pager-bottom");
+    if (listPagerBottom) {
+        renderPageNumbers(listPagerBottom, displayList.length, LIST_PAGE_SIZE, listPageIndex, handlePageChange);
     }
 
     var fragment = document.createDocumentFragment();
