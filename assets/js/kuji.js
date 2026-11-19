@@ -140,7 +140,7 @@ function setDrawResult(selected) {
     resultWord.textContent = selected.word;
     if (selected.meaning && selected.meaning.trim() !== "") {
         resultMeaning.textContent = selected.meaning;
-        resultMeaning.style.display = "inline-block";
+        resultMeaning.style.display = "block";
     } else {
         resultMeaning.textContent = "";
         resultMeaning.style.display = "none";
@@ -162,7 +162,7 @@ function setDrawResult(selected) {
             var sTextNode = document.createElement("span");
             sTextNode.textContent = srcText;
             resultSource.appendChild(sTextNode);
-            resultSource.style.display = "";
+            resultSource.style.display = "inline-flex";
         } else {
             resultSource.style.display = "none";
         }

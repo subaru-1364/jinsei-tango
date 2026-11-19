@@ -927,8 +927,8 @@ function renderActiveBookMeta() {
     var coverBtn = document.createElement("button");
     coverBtn.type = "button";
     coverBtn.className = "btn-book-cover";
-    coverBtn.title = "この本の書影・表紙カラーを設定";
-    coverBtn.textContent = "書影の設定";
+    coverBtn.title = "この本の書影・表紙カラーの設定";
+    coverBtn.textContent = "書影・設定";
     coverBtn.addEventListener("click", function() {
         openBookCoverModal(book.id);
     });
@@ -964,16 +964,16 @@ function renderActiveBookMeta() {
             moveBookOrder(book.id, 1);
         });
         rightGroup.appendChild(moveRightBtn);
-    }
 
-    var delBookBtn = document.createElement("button");
-    delBookBtn.type = "button";
-    delBookBtn.className = "btn-book-remove";
-    delBookBtn.textContent = "この本を削除";
-    delBookBtn.addEventListener("click", function() {
-        deleteCurrentBook();
-    });
-    rightGroup.appendChild(delBookBtn);
+        var delBookBtn = document.createElement("button");
+        delBookBtn.type = "button";
+        delBookBtn.className = "btn-book-remove";
+        delBookBtn.textContent = "この本を削除";
+        delBookBtn.addEventListener("click", function() {
+            deleteCurrentBook();
+        });
+        rightGroup.appendChild(delBookBtn);
+    }
 
     metaBox.appendChild(rightGroup);
 }
@@ -1023,6 +1023,15 @@ function closeBookCoverModal() {
     if (modal) modal.style.display = "none";
     currentCoverModalBookId = null;
     hideCoverStatusMsg();
+}
+
+function deleteCurrentBookFromModal() {
+    var targetId = currentCoverModalBookId || currentBookTab;
+    closeBookCoverModal();
+    if (targetId && targetId !== "all_books" && targetId !== "uncategorized") {
+        currentBookTab = targetId;
+        deleteCurrentBook();
+    }
 }
 
 function updateCoverModalPreview() {

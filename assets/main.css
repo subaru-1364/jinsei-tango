@@ -851,7 +851,7 @@ body {
     letter-spacing: 0.01em;
 }
 
-/* ランダムピックアップ（主張を抑えた控えめなサブバー設計） */
+/* 単語ガチャ（主張を抑えた控えめなサブバー設計） */
 .draw-section {
     background: #faf9f5;
     border: 1px dashed #ccc9be;
@@ -909,6 +909,9 @@ body {
     border-radius: 6px;
     padding: 0.55rem 0.85rem;
     text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
 }
 
 .draw-result-box.popping {
@@ -2002,7 +2005,13 @@ body {
 }
 
 .draw-result-box .word-source {
-    margin-top: 0.5rem;
+    margin-top: 0.2rem;
+    display: inline-flex;
+    align-items: center;
+    white-space: normal;
+    word-break: break-word;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
 }
 
 /* 編集欄内の削除ボタン（誤タップ防止のため保存側と離して配置） */
@@ -2316,4 +2325,26 @@ body {
     background: #ecfdf5;
     color: #047857;
     border: 1px solid #a7f3d0;
+}
+
+.cover-modal-danger-zone {
+    margin-top: 0.5rem;
+    padding-top: 0.65rem;
+    border-top: 1px dashed #e5e3dc;
+    text-align: right;
+}
+
+.btn-book-delete-danger {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    transition: color 0.15s;
+}
+
+.btn-book-delete-danger:hover {
+    color: #dc2626;
 }

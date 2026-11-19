@@ -58,13 +58,13 @@
                 </div>
             </header>
 
-            <!-- ランダムくじ引き（山札シャッフル方式） -->
+            <!-- 単語ガチャ（山札シャッフル方式） -->
             <section class="card draw-section">
                 <div class="draw-row">
                     <div class="draw-title-group">
                         <span class="sub-title">
                             <svg class="icon-line icon-subtle" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h8.5l-2-2M13.5 10.5H5l2 2"/></svg>
-                            ランダムピックアップ
+                            単語ガチャ
                         </span>
                     </div>
                     <button id="draw-btn" class="btn btn-primary btn-draw-compact" onclick="drawWord()">
@@ -243,6 +243,10 @@
                         <button type="button" class="btn btn-sub" onclick="closeBookCoverModal()">キャンセル</button>
                     </div>
                     <button type="button" id="cover-modal-save-btn" class="btn btn-primary btn-modal-save" onclick="saveBookCoverModal()">この設定で保存</button>
+                </div>
+
+                <div class="cover-modal-danger-zone">
+                    <button type="button" class="btn-book-delete-danger" onclick="deleteCurrentBookFromModal()">この本を本棚から削除</button>
                 </div>
             </div>
         </div>
