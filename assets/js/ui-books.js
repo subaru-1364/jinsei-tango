@@ -791,10 +791,11 @@ function renderBookSearchModalList(filterKeyword) {
 
 function renderCoverSpineElement(bookTitle, color, size) {
     var ph = document.createElement("div");
-    ph.className = "book-cover-placeholder" + (size ? (" is-" + size) : "");
+    var textColor = getContrastTextColor(color);
+    var isLight = (textColor === "#18181b");
+    ph.className = "book-cover-placeholder" + (size ? (" is-" + size) : "") + (isLight ? " is-light-bg" : "");
     var raw = (bookTitle || "").trim();
     ph.setAttribute("aria-label", raw || "表紙");
-    var textColor = getContrastTextColor(color);
     ph.style.backgroundColor = color;
     ph.style.color = textColor;
 

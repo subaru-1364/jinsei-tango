@@ -337,17 +337,18 @@ body {
 }
 
 .book-tab-color-dot {
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     flex-shrink: 0;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
-    transition: transform 0.15s ease;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    margin: 0 2px 0 1px;
 }
 
 .book-tab.active .book-tab-color-dot {
-    box-shadow: 0 0 0 1.5px #ffffff;
-    transform: scale(1.1);
+    border-color: rgba(0, 0, 0, 0.35);
+    box-shadow: 0 0 0 1.2px #ffffff;
 }
 
 .book-tab-title {
@@ -508,8 +509,8 @@ body {
     height: 50px;
     object-fit: cover;
     border-radius: 3px;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    box-shadow: 0 1px 3px rgba(24, 24, 27, 0.12);
+    border: 1px solid rgba(0, 0, 0, 0.22);
+    box-shadow: 0 2px 5px rgba(24, 24, 27, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
     flex-shrink: 0;
     background-color: #f4f3ef;
 }
@@ -518,7 +519,8 @@ body {
     width: 72px;
     height: 100px;
     border-radius: 4px;
-    box-shadow: 0 4px 10px rgba(24, 24, 27, 0.18);
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    box-shadow: 0 6px 16px rgba(24, 24, 27, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
 .book-cover-placeholder {
@@ -533,12 +535,13 @@ body {
     font-weight: 700;
     line-height: 1.15;
     background-image: 
-        linear-gradient(to right, rgba(0, 0, 0, 0.25) 0, rgba(0, 0, 0, 0.16) 2px, rgba(255, 255, 255, 0.15) 3px, transparent 4px),
+        linear-gradient(to right, rgba(0, 0, 0, 0.22) 0, rgba(0, 0, 0, 0.12) 2px, rgba(255, 255, 255, 0.2) 3px, transparent 5px),
+        linear-gradient(to left, rgba(0, 0, 0, 0.08) 0, transparent 3px),
         linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, transparent 60%);
-    border: 1px solid rgba(0, 0, 0, 0.18);
-    border-left: 3px solid rgba(0, 0, 0, 0.32);
+    border: 1px solid rgba(0, 0, 0, 0.22);
+    border-left: 3.5px solid rgba(0, 0, 0, 0.4);
     border-radius: 2px 4px 4px 2px;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.12), inset 0 0 4px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.14), 1px 1px 2px rgba(0, 0, 0, 0.08);
     text-align: center;
     word-break: break-all;
     overflow: hidden;
@@ -551,9 +554,22 @@ body {
     height: 100px;
     font-size: 0.78rem;
     padding: 6px 8px 6px 12px;
-    border-left-width: 5px;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    border-left: 6px solid rgba(0, 0, 0, 0.45);
     border-radius: 3px 6px 6px 3px;
-    box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 1px 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.book-cover-placeholder.is-light-bg {
+    border-color: rgba(0, 0, 0, 0.28);
+    border-left-color: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.book-cover-placeholder.is-light-bg.is-large {
+    border-color: rgba(0, 0, 0, 0.32);
+    border-left-color: rgba(0, 0, 0, 0.55);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
 .book-cover-placeholder .book-cover-title {
@@ -562,6 +578,11 @@ body {
     word-break: break-all;
     letter-spacing: -0.02em;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.book-cover-placeholder.is-light-bg .book-cover-title {
+    text-shadow: none;
+    font-weight: 700;
 }
 
 .book-meta-info {
@@ -1763,6 +1784,7 @@ body {
     .book-tab-color-dot {
         width: 10px;
         height: 10px;
+        margin: 0 3px 0 1px;
     }
     .book-tab-count {
         font-size: 0.76rem;
@@ -1995,13 +2017,17 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 100%;
+    padding: 1px 2px 1px 1px;
 }
 
 .word-source-dot {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    margin: 0 1px;
 }
 
 .draw-result-box .word-source {
@@ -2154,9 +2180,9 @@ body {
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 0.75rem;
-    background: #fbfaf7;
-    border: 1px solid #ebe8e1;
+    padding: 0.85rem 1rem;
+    background: #eae7dd;
+    border: 1px solid #d8d4c7;
     border-radius: 8px;
 }
 
