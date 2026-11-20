@@ -156,13 +156,14 @@ function openWordAddModal(defaultBookId) {
         if (!chosenId) {
             if (currentBookTab && currentBookTab !== "all_books") {
                 chosenId = currentBookTab;
-            } else if (bookList.length > 0) {
-                chosenId = bookList[0].id;
             } else {
                 chosenId = "uncategorized";
             }
         }
         select.value = chosenId;
+        if (!select.value) {
+            select.value = "uncategorized";
+        }
     }
 
     var input = document.getElementById("quick-add-input");
