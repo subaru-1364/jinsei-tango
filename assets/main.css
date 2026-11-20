@@ -76,7 +76,9 @@ html.auth-hint-logged-in #app-main {
     display: flex !important;
 }
 html.auth-hint-redirecting #gate-login-btn,
-html.auth-hint-redirecting #gate-local-btn {
+html.auth-hint-redirecting #gate-local-btn,
+html.auth-hint-pending #gate-login-btn,
+html.auth-hint-pending #gate-local-btn {
     display: none !important;
 }
 

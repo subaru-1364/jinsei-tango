@@ -10,6 +10,7 @@ function setGateVisibility(isLoggedIn, messageText, showButton) {
     if (document.documentElement) {
         if (isLoggedIn) {
             document.documentElement.classList.add("auth-hint-logged-in");
+            document.documentElement.classList.remove("auth-hint-pending");
             document.documentElement.classList.remove("auth-hint-redirecting");
         } else {
             document.documentElement.classList.remove("auth-hint-logged-in");
@@ -53,17 +54,22 @@ function refreshUI() {
 
 // ページ読み込み時の初期化
 window.addEventListener("DOMContentLoaded", function() {
-    loadLocalData();
     syncConfirmToggleUI();
 
     var hasAuthHint = false;
+    var lastUid = "";
     try {
         hasAuthHint = (localStorage.getItem("kuji_logged_in_hint") === "1");
+        lastUid = localStorage.getItem("kuji_last_uid") || "";
     } catch (e) {}
 
-    if (isLocalEnvironment()) {
+    if (isLocalEnvironment() && !hasAuthHint) {
+        loadLocalData();
         enterLocalPreviewMode();
     } else if (hasAuthHint) {
+        if (lastUid && getLocalDataOwnerUid() === lastUid) {
+            loadLocalData();
+        }
         refreshUI();
     }
     initFirebase();

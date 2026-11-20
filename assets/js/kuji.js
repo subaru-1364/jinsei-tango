@@ -7,7 +7,22 @@ let lastPoolSignature = "";
 
 function resetDrawDeck() {
     drawDeck = [];
+    lastDrawnKey = null;
     lastPoolSignature = "";
+    var resultBox = document.getElementById("draw-result");
+    if (resultBox) resultBox.style.display = "none";
+    var resultWord = document.getElementById("result-word");
+    if (resultWord) resultWord.textContent = "";
+    var resultMeaning = document.getElementById("result-meaning");
+    if (resultMeaning) {
+        resultMeaning.textContent = "";
+        resultMeaning.style.display = "none";
+    }
+    var resultSource = document.getElementById("result-source");
+    if (resultSource) {
+        resultSource.textContent = "";
+        resultSource.style.display = "none";
+    }
 }
 
 function getActiveDrawPool() {
@@ -58,7 +73,10 @@ function syncDrawDeckWithPool(pool) {
 
 function updateDrawDeckInfo() {
     var pool = getActiveDrawPool();
-    if (pool.length === 0) return;
+    if (pool.length === 0) {
+        resetDrawDeck();
+        return;
+    }
     syncDrawDeckWithPool(pool);
 }
 

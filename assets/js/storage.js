@@ -452,15 +452,36 @@ function loadLocalData() {
     }
 }
 
+function getLocalDataOwnerUid() {
+    try {
+        var rawV2 = localStorage.getItem(LOCAL_STORAGE_V2_KEY);
+        if (rawV2) {
+            var parsed = JSON.parse(rawV2);
+            if (parsed && typeof parsed.uid === "string" && parsed.uid) {
+                return parsed.uid;
+            }
+        }
+        return localStorage.getItem("kuji_last_uid") || "";
+    } catch (e) {
+        return "";
+    }
+}
+
 function storeLocalData(updatedAt, markPending) {
     // bookList の並び順を order フィールドに同期
     for (var i = 0; i < bookList.length; i++) {
         bookList[i].order = i * 10;
     }
 
+    var ownerUid = "";
+    try {
+        ownerUid = (currentUser && currentUser.uid) ? currentUser.uid : (localStorage.getItem("kuji_last_uid") || "");
+    } catch (e) {}
+
     var ts = typeof updatedAt === "number" ? updatedAt : Date.now();
     var payload = {
         version: DATA_SCHEMA_VERSION,
+        uid: ownerUid,
         updatedAt: ts,
         books: bookList,
         words: wordList
@@ -468,6 +489,9 @@ function storeLocalData(updatedAt, markPending) {
 
     try {
         localStorage.setItem(LOCAL_STORAGE_V2_KEY, JSON.stringify(payload));
+        if (ownerUid) {
+            localStorage.setItem("kuji_last_uid", ownerUid);
+        }
         if (ts > 0) {
             localStorage.setItem("kuji_updated_at", String(ts));
         }
@@ -690,46 +714,154 @@ function pushLocalToCloud(clientTime) {
 
 // ==================== Firebase 認証・リアルタイム同期監視 ====================
 
-function handleUserLoggedIn(user) {
-    currentUser = user;
+let isPopupAuthInProgress = false;
+
+function setAuthPendingState() {
+    var nowStr = String(Date.now());
     try {
-        localStorage.setItem("kuji_logged_in_hint", "1");
+        sessionStorage.setItem("kuji_auth_pending", nowStr);
+        localStorage.setItem("kuji_auth_pending", nowStr);
+    } catch (e) {}
+    if (document.documentElement) {
+        document.documentElement.classList.add("auth-hint-pending");
+    }
+}
+
+function isAuthPendingState() {
+    try {
+        var val = sessionStorage.getItem("kuji_auth_pending") || localStorage.getItem("kuji_auth_pending") || "";
+        if (!val) {
+            return sessionStorage.getItem("kuji_redirect_login") === "1";
+        }
+        if (val === "1") return true;
+        var ts = Number(val);
+        if (ts > 0 && (Date.now() - ts) < 60000) {
+            return true;
+        }
+        clearAuthPending();
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
+
+function clearAuthPending() {
+    try {
+        localStorage.removeItem("kuji_auth_pending");
+        sessionStorage.removeItem("kuji_auth_pending");
         sessionStorage.removeItem("kuji_redirect_login");
     } catch (e) {}
     if (document.documentElement) {
-        document.documentElement.classList.add("auth-hint-logged-in");
+        document.documentElement.classList.remove("auth-hint-pending");
         document.documentElement.classList.remove("auth-hint-redirecting");
+    }
+}
+
+// ユーザー固有のローカルデータ（単語・本棚・同期状態）の完全消去
+function clearLocalUserData() {
+    if (cloudSaveTimer) {
+        clearTimeout(cloudSaveTimer);
+        cloudSaveTimer = null;
+    }
+    bookList = [];
+    wordList = [];
+    bookCoverCache = {};
+    meaningCandidatesCache = {};
+    candidateCycleIndex = {};
+    cloudStateCache = null;
+    currentBookTab = "all_books";
+    listPageIndex = 0;
+    editingWordId = null;
+    if (typeof resetDrawDeck === "function") {
+        resetDrawDeck();
+    }
+    var searchInput = document.getElementById("search-input");
+    if (searchInput) searchInput.value = "";
+    var quickInput = document.getElementById("quick-add-input");
+    if (quickInput) quickInput.value = "";
+    try {
+        localStorage.removeItem(LOCAL_STORAGE_V2_KEY);
+        localStorage.removeItem("kuji_updated_at");
+        localStorage.removeItem("kuji_pending_sync");
+        localStorage.removeItem("kuji_last_uid");
+        clearLegacyLocalKeys();
+        sessionStorage.removeItem("kuji_book_tab");
+    } catch (e) {}
+}
+
+function handleUserLoggedIn(user) {
+    if (!user || !user.uid) return;
+
+    var isSameActiveUser = Boolean(currentUser && currentUser.uid === user.uid && activeDbRef);
+    var ownerUid = getLocalDataOwnerUid();
+
+    // ローカルデータの所有者が現在のログインユーザーと一致しない場合は完全消去（別アカウントへの混入防止）
+    if (ownerUid !== user.uid) {
+        clearLocalUserData();
+    } else if (bookList.length === 0 && wordList.length === 0) {
+        loadLocalData();
+    }
+
+    currentUser = user;
+    isPopupAuthInProgress = false;
+    clearAuthPending();
+
+    try {
+        localStorage.setItem("kuji_logged_in_hint", "1");
+        localStorage.setItem("kuji_last_uid", user.uid);
+    } catch (e) {}
+    if (document.documentElement) {
+        document.documentElement.classList.add("auth-hint-logged-in");
     }
     updateAuthUI(user);
     setGateVisibility(true, "", false);
     refreshUI();
-    startCloudSync(user);
+
+    if (!isSameActiveUser) {
+        startCloudSync(user);
+    }
 }
 
-function handleUserLoggedOut() {
+function handleUserLoggedOut(explicitLogout) {
     currentUser = null;
-    try {
-        localStorage.removeItem("kuji_logged_in_hint");
-        sessionStorage.removeItem("kuji_redirect_login");
-    } catch (e) {}
-    if (document.documentElement) {
-        document.documentElement.classList.remove("auth-hint-logged-in");
-        document.documentElement.classList.remove("auth-hint-redirecting");
-    }
-    updateAuthUI(null);
-
-    if (isLocalEnvironment() && sessionStorage.getItem("kuji_local_preview") === "1") {
-        setGateVisibility(true, "", false);
-        updateSyncStatus("ローカル確認中", false);
-        refreshUI();
-        return;
-    }
+    isPopupAuthInProgress = false;
+    clearAuthPending();
 
     if (activeDbRef) {
         activeDbRef.off();
         activeDbRef = null;
     }
     cloudStateCache = null;
+
+    // ローカル確認モード中（かつ明示的ログアウトではない初期未ログイン判定時）はローカル確認データを保持
+    if (!explicitLogout && isLocalEnvironment() && sessionStorage.getItem("kuji_local_preview") === "1") {
+        try {
+            localStorage.removeItem("kuji_logged_in_hint");
+        } catch (e) {}
+        updateAuthUI(null);
+        setGateVisibility(true, "", false);
+        updateSyncStatus("ローカル確認中", false);
+        refreshUI();
+        return;
+    }
+
+    if (explicitLogout) {
+        clearLocalUserData();
+    } else {
+        bookList = [];
+        wordList = [];
+        bookCoverCache = {};
+    }
+
+    try {
+        localStorage.removeItem("kuji_logged_in_hint");
+    } catch (e) {}
+    if (document.documentElement) {
+        document.documentElement.classList.remove("auth-hint-logged-in");
+    }
+    updateAuthUI(null);
+    refreshUI();
+
     setGateVisibility(
         false,
         "単語帳・本棚データはGoogleアカウントでクラウド同期・保護されています。ログインして利用を開始してください。",
@@ -749,51 +881,55 @@ function initFirebase() {
         fbAuth = firebase.auth();
         fbDb = firebase.database();
 
-        var isRedirecting = false;
-        try {
-            isRedirecting = (sessionStorage.getItem("kuji_redirect_login") === "1");
-        } catch (e) {}
-
-        if (isRedirecting) {
+        if (isAuthPendingState()) {
             setGateVisibility(false, "Google認証を確認しています...", false);
         }
 
         var redirectSettled = false;
+        var pendingTimeoutTimer = null;
+
+        // 認証保留中の場合のセーフティタイマー（万一認証中断・タイムアウト時のみゲートを戻す）
+        if (isAuthPendingState()) {
+            pendingTimeoutTimer = setTimeout(function() {
+                if (!currentUser && !(fbAuth && fbAuth.currentUser) && !isPopupAuthInProgress) {
+                    handleUserLoggedOut(false);
+                }
+            }, 15000);
+        }
 
         // リダイレクト認証結果の監視
         fbAuth.getRedirectResult().then(function(result) {
             redirectSettled = true;
-            try {
-                sessionStorage.removeItem("kuji_redirect_login");
-            } catch (e) {}
             if (result && result.user) {
+                if (pendingTimeoutTimer) clearTimeout(pendingTimeoutTimer);
                 handleUserLoggedIn(result.user);
-            } else if (!fbAuth.currentUser && isRedirecting) {
-                handleUserLoggedOut();
+            } else if (isAuthPendingState()) {
+                // getRedirectResult が空で解決した場合も onAuthStateChanged の復元完了を少し待ってから判定
+                setTimeout(function() {
+                    if (!currentUser && !(fbAuth && fbAuth.currentUser) && !isPopupAuthInProgress) {
+                        if (pendingTimeoutTimer) clearTimeout(pendingTimeoutTimer);
+                        handleUserLoggedOut(false);
+                    }
+                }, 1200);
             }
         }).catch(function(err) {
             redirectSettled = true;
-            try {
-                sessionStorage.removeItem("kuji_redirect_login");
-            } catch (e) {}
+            if (pendingTimeoutTimer) clearTimeout(pendingTimeoutTimer);
             console.error("Redirect auth error:", err);
-            handleUserLoggedOut();
+            handleUserLoggedOut(false);
         });
 
         // 認証状態の監視
         fbAuth.onAuthStateChanged(function(user) {
             if (user) {
+                if (pendingTimeoutTimer) clearTimeout(pendingTimeoutTimer);
                 handleUserLoggedIn(user);
             } else {
-                // リダイレクト復帰中は getRedirectResult の結果確定まで一時的な null 発火を無視
-                var redirectingNow = false;
-                try {
-                    redirectingNow = (sessionStorage.getItem("kuji_redirect_login") === "1");
-                } catch (e) {}
-                if (redirectingNow && !redirectSettled) {
+                // ポップアップ認証中、またはリダイレクト認証保留中は未ログインゲート画面への差し戻しを抑止
+                if (isPopupAuthInProgress || isAuthPendingState()) {
                     return;
                 }
-                handleUserLoggedOut();
+                handleUserLoggedOut(false);
             }
         });
     } catch (e) {
@@ -832,24 +968,30 @@ function handleAuthClick() {
     }
     if (currentUser) {
         if (confirm("ログアウトしますか？")) {
+            clearLocalUserData();
             fbAuth.signOut().then(function() {
-                handleUserLoggedOut();
+                handleUserLoggedOut(true);
             }).catch(function(err) {
                 console.error("Sign out error:", err);
-                handleUserLoggedOut();
+                handleUserLoggedOut(true);
             });
         }
     } else {
+        isPopupAuthInProgress = true;
+        setAuthPendingState();
+        setGateVisibility(false, "Googleアカウントでログイン中...", false);
+
         var provider = new firebase.auth.GoogleAuthProvider();
-        var gateMsg = document.getElementById("gate-message");
-        if (gateMsg) gateMsg.textContent = "Googleアカウントでログイン中...";
 
         fbAuth.signInWithPopup(provider).then(function(result) {
+            isPopupAuthInProgress = false;
             if (result && result.user) {
                 handleUserLoggedIn(result.user);
             }
         }).catch(function(err) {
+            isPopupAuthInProgress = false;
             if (err && (err.code === "auth/popup-blocked" || err.code === "auth/operation-not-supported-in-this-environment")) {
+                setAuthPendingState();
                 try {
                     sessionStorage.setItem("kuji_redirect_login", "1");
                     if (document.documentElement) {
@@ -858,28 +1000,36 @@ function handleAuthClick() {
                 } catch (e) {}
                 fbAuth.signInWithRedirect(provider);
             } else if (err && err.code !== "auth/popup-closed-by-user") {
+                clearAuthPending();
                 alert("ログインエラー: " + err.message);
-                if (gateMsg) {
-                    gateMsg.textContent = "単語帳・本棚データはGoogleアカウントでクラウド同期・保護されています。ログインして利用を開始してください。";
-                }
+                handleUserLoggedOut(false);
             } else {
-                if (gateMsg) {
-                    gateMsg.textContent = "単語帳・本棚データはGoogleアカウントでクラウド同期・保護されています。ログインして利用を開始してください。";
-                }
+                // ポップアップがキャンセルされた場合
+                clearAuthPending();
+                handleUserLoggedOut(false);
             }
         });
     }
 }
 
 function startCloudSync(user) {
-    if (!fbDb) return;
+    if (!fbDb || !user || !user.uid) return;
     if (activeDbRef) activeDbRef.off();
+
+    var ownerUid = getLocalDataOwnerUid();
+    if (ownerUid !== user.uid) {
+        clearLocalUserData();
+    }
+    try {
+        localStorage.setItem("kuji_last_uid", user.uid);
+    } catch (e) {}
 
     activeDbRef = fbDb.ref("users/" + user.uid);
     activeDbRef.on("value", function(snapshot) {
-        var hasPendingLocal = (localStorage.getItem("kuji_pending_sync") === "1");
-        var localUpdatedAt = Number(localStorage.getItem("kuji_updated_at") || 0);
-        var hasLocalData = (bookList.length > 0 || wordList.length > 0);
+        var isOwnedByCurrentUser = (getLocalDataOwnerUid() === user.uid);
+        var hasPendingLocal = isOwnedByCurrentUser && (localStorage.getItem("kuji_pending_sync") === "1");
+        var localUpdatedAt = isOwnedByCurrentUser ? Number(localStorage.getItem("kuji_updated_at") || 0) : 0;
+        var hasLocalData = isOwnedByCurrentUser && (bookList.length > 0 || wordList.length > 0);
 
         if (snapshot.exists()) {
             var data = snapshot.val();
@@ -893,25 +1043,19 @@ function startCloudSync(user) {
             var cloudUpdatedAt = (data && typeof data.clientUpdatedAt === "number") ? data.clientUpdatedAt : 0;
             var hasCloudData = (cloudParsed.books.length > 0 || cloudParsed.words.length > 0);
 
-            // ① ローカルに未送信の変更がある、またはローカルのほうが新しい場合はローカルを保護してクラウドへ送信
+            // ① 同一ユーザーのローカルに未送信の変更がある、またはローカルのほうが新しい場合はクラウドへ送信
             if ((hasPendingLocal || localUpdatedAt > cloudUpdatedAt) && hasLocalData) {
                 pushLocalToCloud(localUpdatedAt || Date.now());
                 return;
             }
 
-            // ② クラウドが空でローカルにデータがある場合もローカルを保護してクラウドへ送信
-            if (!hasCloudData && hasLocalData) {
-                pushLocalToCloud(Date.now());
-                return;
-            }
-
-            // ③ クラウド側データをローカルへ反映
-            if (cloudUpdatedAt >= localUpdatedAt) {
+            // ② クラウド側データをローカルへ反映
+            if (cloudUpdatedAt >= localUpdatedAt || !hasLocalData) {
                 var same = isDataEqual(bookList, wordList, cloudParsed.books, cloudParsed.words);
                 bookList = cloudParsed.books;
                 wordList = cloudParsed.words;
                 deduplicateDataInPlace();
-                storeLocalData(cloudUpdatedAt, false);
+                storeLocalData(cloudUpdatedAt || Date.now(), false);
                 localStorage.removeItem("kuji_pending_sync");
 
                 if (!same) {
@@ -927,9 +1071,13 @@ function startCloudSync(user) {
             updateSyncStatus("同期済み", true);
         } else {
             cloudStateCache = { isV2: true, booksJson: {}, wordsJson: {} };
-            if (hasLocalData) {
+            if (hasLocalData && hasPendingLocal) {
                 pushLocalToCloud(Date.now());
             } else {
+                bookList = [];
+                wordList = [];
+                storeLocalData(Date.now(), false);
+                refreshUI();
                 updateSyncStatus("同期済み", true);
             }
         }
