@@ -68,6 +68,18 @@ body {
     width: 100%;
 }
 
+/* ログイン状態のチラつき・初期遷移防止（FOUC対策） */
+html.auth-hint-logged-in #login-gate {
+    display: none !important;
+}
+html.auth-hint-logged-in #app-main {
+    display: flex !important;
+}
+html.auth-hint-redirecting #gate-login-btn,
+html.auth-hint-redirecting #gate-local-btn {
+    display: none !important;
+}
+
 /* ログイン必須ゲート画面 */
 .login-gate-card {
     display: flex;

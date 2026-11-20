@@ -690,6 +690,53 @@ function pushLocalToCloud(clientTime) {
 
 // ==================== Firebase 認証・リアルタイム同期監視 ====================
 
+function handleUserLoggedIn(user) {
+    currentUser = user;
+    try {
+        localStorage.setItem("kuji_logged_in_hint", "1");
+        sessionStorage.removeItem("kuji_redirect_login");
+    } catch (e) {}
+    if (document.documentElement) {
+        document.documentElement.classList.add("auth-hint-logged-in");
+        document.documentElement.classList.remove("auth-hint-redirecting");
+    }
+    updateAuthUI(user);
+    setGateVisibility(true, "", false);
+    refreshUI();
+    startCloudSync(user);
+}
+
+function handleUserLoggedOut() {
+    currentUser = null;
+    try {
+        localStorage.removeItem("kuji_logged_in_hint");
+        sessionStorage.removeItem("kuji_redirect_login");
+    } catch (e) {}
+    if (document.documentElement) {
+        document.documentElement.classList.remove("auth-hint-logged-in");
+        document.documentElement.classList.remove("auth-hint-redirecting");
+    }
+    updateAuthUI(null);
+
+    if (isLocalEnvironment() && sessionStorage.getItem("kuji_local_preview") === "1") {
+        setGateVisibility(true, "", false);
+        updateSyncStatus("ローカル確認中", false);
+        refreshUI();
+        return;
+    }
+
+    if (activeDbRef) {
+        activeDbRef.off();
+        activeDbRef = null;
+    }
+    cloudStateCache = null;
+    setGateVisibility(
+        false,
+        "単語帳・本棚データはGoogleアカウントでクラウド同期・保護されています。ログインして利用を開始してください。",
+        true
+    );
+}
+
 function initFirebase() {
     if (typeof firebase === "undefined") {
         setGateVisibility(false, "ネットワーク接続を確認してください。", false);
@@ -702,32 +749,51 @@ function initFirebase() {
         fbAuth = firebase.auth();
         fbDb = firebase.database();
 
-        fbAuth.getRedirectResult().catch(function(err) {
+        var isRedirecting = false;
+        try {
+            isRedirecting = (sessionStorage.getItem("kuji_redirect_login") === "1");
+        } catch (e) {}
+
+        if (isRedirecting) {
+            setGateVisibility(false, "Google認証を確認しています...", false);
+        }
+
+        var redirectSettled = false;
+
+        // リダイレクト認証結果の監視
+        fbAuth.getRedirectResult().then(function(result) {
+            redirectSettled = true;
+            try {
+                sessionStorage.removeItem("kuji_redirect_login");
+            } catch (e) {}
+            if (result && result.user) {
+                handleUserLoggedIn(result.user);
+            } else if (!fbAuth.currentUser && isRedirecting) {
+                handleUserLoggedOut();
+            }
+        }).catch(function(err) {
+            redirectSettled = true;
+            try {
+                sessionStorage.removeItem("kuji_redirect_login");
+            } catch (e) {}
             console.error("Redirect auth error:", err);
+            handleUserLoggedOut();
         });
 
+        // 認証状態の監視
         fbAuth.onAuthStateChanged(function(user) {
-            currentUser = user;
-            updateAuthUI(user);
             if (user) {
-                setGateVisibility(true, "", false);
-                refreshUI();
-                startCloudSync(user);
-            } else if (isLocalEnvironment() && sessionStorage.getItem("kuji_local_preview") === "1") {
-                setGateVisibility(true, "", false);
-                updateSyncStatus("ローカル確認中", false);
-                refreshUI();
+                handleUserLoggedIn(user);
             } else {
-                if (activeDbRef) {
-                    activeDbRef.off();
-                    activeDbRef = null;
+                // リダイレクト復帰中は getRedirectResult の結果確定まで一時的な null 発火を無視
+                var redirectingNow = false;
+                try {
+                    redirectingNow = (sessionStorage.getItem("kuji_redirect_login") === "1");
+                } catch (e) {}
+                if (redirectingNow && !redirectSettled) {
+                    return;
                 }
-                cloudStateCache = null;
-                setGateVisibility(
-                    false,
-                    "単語帳・本棚データはGoogleアカウントでクラウド同期・保護されています。ログインして利用を開始してください。",
-                    true
-                );
+                handleUserLoggedOut();
             }
         });
     } catch (e) {
@@ -766,15 +832,40 @@ function handleAuthClick() {
     }
     if (currentUser) {
         if (confirm("ログアウトしますか？")) {
-            fbAuth.signOut();
+            fbAuth.signOut().then(function() {
+                handleUserLoggedOut();
+            }).catch(function(err) {
+                console.error("Sign out error:", err);
+                handleUserLoggedOut();
+            });
         }
     } else {
         var provider = new firebase.auth.GoogleAuthProvider();
-        fbAuth.signInWithPopup(provider).catch(function(err) {
+        var gateMsg = document.getElementById("gate-message");
+        if (gateMsg) gateMsg.textContent = "Googleアカウントでログイン中...";
+
+        fbAuth.signInWithPopup(provider).then(function(result) {
+            if (result && result.user) {
+                handleUserLoggedIn(result.user);
+            }
+        }).catch(function(err) {
             if (err && (err.code === "auth/popup-blocked" || err.code === "auth/operation-not-supported-in-this-environment")) {
+                try {
+                    sessionStorage.setItem("kuji_redirect_login", "1");
+                    if (document.documentElement) {
+                        document.documentElement.classList.add("auth-hint-redirecting");
+                    }
+                } catch (e) {}
                 fbAuth.signInWithRedirect(provider);
             } else if (err && err.code !== "auth/popup-closed-by-user") {
                 alert("ログインエラー: " + err.message);
+                if (gateMsg) {
+                    gateMsg.textContent = "単語帳・本棚データはGoogleアカウントでクラウド同期・保護されています。ログインして利用を開始してください。";
+                }
+            } else {
+                if (gateMsg) {
+                    gateMsg.textContent = "単語帳・本棚データはGoogleアカウントでクラウド同期・保護されています。ログインして利用を開始してください。";
+                }
             }
         });
     }

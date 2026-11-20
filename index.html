@@ -8,17 +8,34 @@
     <link rel="icon" type="image/png" href="./assets/icon.png?v=6">
     <link rel="apple-touch-icon" href="./assets/icon.png?v=6">
 
-    <link rel="stylesheet" href="./assets/main.css?v=89">
+    <link rel="stylesheet" href="./assets/main.css?v=90">
+    <script>
+        // ログイン状態・リダイレクト復帰の事前判定（初期レンダリング時の画面チラつき・再ゲート表示を防止）
+        (function() {
+            try {
+                var isLocal = (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:");
+                var hasAuthHint = (localStorage.getItem("kuji_logged_in_hint") === "1");
+                var hasLocalPreview = (isLocal && sessionStorage.getItem("kuji_local_preview") === "1");
+                var isRedirecting = (sessionStorage.getItem("kuji_redirect_login") === "1");
+
+                if (hasAuthHint || hasLocalPreview) {
+                    document.documentElement.classList.add("auth-hint-logged-in");
+                } else if (isRedirecting) {
+                    document.documentElement.classList.add("auth-hint-redirecting");
+                }
+            } catch (e) {}
+        })();
+    </script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js" defer></script>
-    <script src="./assets/js/config.js?v=89" defer></script>
-    <script src="./assets/js/storage.js?v=89" defer></script>
-    <script src="./assets/js/api.js?v=89" defer></script>
-    <script src="./assets/js/kuji.js?v=89" defer></script>
-    <script src="./assets/js/ui-books.js?v=89" defer></script>
-    <script src="./assets/js/ui-words.js?v=89" defer></script>
-    <script src="./assets/js/app.js?v=89" defer></script>
+    <script src="./assets/js/config.js?v=90" defer></script>
+    <script src="./assets/js/storage.js?v=90" defer></script>
+    <script src="./assets/js/api.js?v=90" defer></script>
+    <script src="./assets/js/kuji.js?v=90" defer></script>
+    <script src="./assets/js/ui-books.js?v=90" defer></script>
+    <script src="./assets/js/ui-words.js?v=90" defer></script>
+    <script src="./assets/js/app.js?v=90" defer></script>
 </head>
 <body>
     <div class="app-wrapper">

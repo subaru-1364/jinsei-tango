@@ -7,6 +7,15 @@ function setGateVisibility(isLoggedIn, messageText, showButton) {
     var gateBtn = document.getElementById("gate-login-btn");
     var localBtn = document.getElementById("gate-local-btn");
 
+    if (document.documentElement) {
+        if (isLoggedIn) {
+            document.documentElement.classList.add("auth-hint-logged-in");
+            document.documentElement.classList.remove("auth-hint-redirecting");
+        } else {
+            document.documentElement.classList.remove("auth-hint-logged-in");
+        }
+    }
+
     if (gate && main) {
         gate.style.display = isLoggedIn ? "none" : "flex";
         main.style.display = isLoggedIn ? "flex" : "none";
@@ -47,8 +56,15 @@ window.addEventListener("DOMContentLoaded", function() {
     loadLocalData();
     syncConfirmToggleUI();
 
+    var hasAuthHint = false;
+    try {
+        hasAuthHint = (localStorage.getItem("kuji_logged_in_hint") === "1");
+    } catch (e) {}
+
     if (isLocalEnvironment()) {
         enterLocalPreviewMode();
+    } else if (hasAuthHint) {
+        refreshUI();
     }
     initFirebase();
 
