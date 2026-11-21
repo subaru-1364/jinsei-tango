@@ -70,7 +70,7 @@ function sanitizeBookCoverField(rawCover) {
 
 function normalizeBookRecord(raw, fallbackIdx) {
     if (!raw || typeof raw !== "object") return null;
-    var title = String(raw.title || "").trim() || "無題の書籍";
+    var title = String(raw.title || "").trim() || "無題のリスト";
     var isbn = String(raw.isbn || "").trim();
     var id = sanitizeEntityId(raw.id || (isbn ? ("book_" + isbn) : ""), "book");
     var cover = sanitizeBookCoverField(raw.cover);
@@ -126,7 +126,7 @@ function getBookById(bookId) {
 
 function getBookTitleById(bookId) {
     if (!bookId || bookId === "uncategorized") return "未分類";
-    if (bookId === "all_books") return "すべての本";
+    if (bookId === "all_books") return "すべて";
     var b = getBookById(bookId);
     return b ? b.title : "未分類";
 }
@@ -340,7 +340,7 @@ function parseLegacyBulkTextToV2(text) {
             var rawId = (parts[0] || "").trim() || ("book_" + idx);
             var bId = sanitizeEntityId(rawId, "book");
             var bIsbn = (parts[1] || "").trim();
-            var bTitle = (parts[2] || "").trim() || "無題の書籍";
+            var bTitle = (parts[2] || "").trim() || "無題のリスト";
             var bAuthor = (parts[3] || "").trim();
             var bCover = sanitizeBookCoverField(parts[4] || "");
 
@@ -525,7 +525,7 @@ function toCloudBookRecord(book, idx) {
     return {
         id: book.id,
         isbn: book.isbn || "",
-        title: book.title || "無題の書籍",
+        title: book.title || "無題のリスト",
         author: book.author || "",
         cover: book.cover || "",
         pinned: Boolean(book.pinned),
@@ -864,7 +864,7 @@ function handleUserLoggedOut(explicitLogout) {
 
     setGateVisibility(
         false,
-        "単語帳・本棚データはGoogleアカウントでクラウド同期・保護されています。ログインして利用を開始してください。",
+        "単語・リストデータはGoogleアカウントでクラウド同期・保護されています。ログインして利用を開始してください。",
         true
     );
 }

@@ -40,6 +40,13 @@ let wordList = [];
 // 現在選択中の本棚タブ ("all_books" | "uncategorized" | book.id)
 let currentBookTab = sessionStorage.getItem("kuji_book_tab") || "all_books";
 let listPageIndex = 0;
+let wordSortOrder = (function() {
+    try {
+        return localStorage.getItem("kuji_word_sort_order") === "desc" ? "desc" : "asc";
+    } catch (e) {
+        return "asc";
+    }
+})();
 
 // インライン編集状態
 let editingWordId = null;
@@ -74,6 +81,20 @@ function syncConfirmToggleUI() {
     var toggle = document.getElementById("confirm-meaning-toggle");
     if (toggle) {
         toggle.checked = shouldConfirmAutoMeaning();
+    }
+}
+
+function syncWordSortUI() {
+    var ascBtn = document.getElementById("word-sort-asc-btn");
+    var descBtn = document.getElementById("word-sort-desc-btn");
+    var isDesc = (wordSortOrder === "desc");
+    if (ascBtn) {
+        ascBtn.classList.toggle("active", !isDesc);
+        ascBtn.setAttribute("aria-pressed", !isDesc ? "true" : "false");
+    }
+    if (descBtn) {
+        descBtn.classList.toggle("active", isDesc);
+        descBtn.setAttribute("aria-pressed", isDesc ? "true" : "false");
     }
 }
 

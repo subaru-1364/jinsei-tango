@@ -71,7 +71,7 @@ function addBookByIsbn() {
     var isbn = normalizeIsbnInput(raw);
     if (!isbn) {
         if (btn) btn.disabled = true;
-        if (status) status.textContent = "「" + raw + "」で本を検索中...";
+        if (status) status.textContent = "「" + raw + "」で書籍候補を検索中...";
         searchBooksByTitleKeyword(raw).then(function(candidates) {
             if (btn) btn.disabled = false;
             renderBookSearchCandidates(raw, candidates);
@@ -83,7 +83,7 @@ function addBookByIsbn() {
         if (bookList[i].isbn === isbn) {
             selectBookTab(bookList[i].id);
             input.value = "";
-            if (status) status.textContent = "すでに登録されている本を選択しました";
+            if (status) status.textContent = "すでに登録されているリストを選択しました";
             return;
         }
     }
@@ -98,7 +98,7 @@ function addBookByIsbn() {
             input.value = "";
             if (status) status.textContent = "追加完了: 『" + info.title + "』";
         } else {
-            var manualTitle = prompt("ISBN (" + isbn + ") の書名が自動取得できませんでした。\n本のタイトルを入力してください:", "ISBN:" + isbn);
+            var manualTitle = prompt("ISBN (" + isbn + ") の書名が自動取得できませんでした。\nリスト名（タイトル）を入力してください:", "ISBN:" + isbn);
             if (manualTitle && manualTitle.trim()) {
                 registerBookObject(isbn, manualTitle.trim(), "", "");
                 input.value = "";
@@ -120,7 +120,7 @@ function renderBookSearchCandidates(rawQuery, candidates) {
 
     if (candidates && candidates.length > 0) {
         if (status) {
-            status.textContent = "追加する本を選択してください（または下のボタンでオリジナルの本として作成）：";
+            status.textContent = "書籍として追加する場合は選択してください（または下のボタンでそのままリストを作成）：";
         }
         candidates.forEach(function(cand) {
             var row = document.createElement("button");
@@ -177,18 +177,18 @@ function renderBookSearchCandidates(rawQuery, candidates) {
             resultsBox.appendChild(row);
         });
     } else if (status) {
-        status.textContent = "「" + rawQuery + "」に一致する書籍データは見つかりませんでした。オリジナルの本として作成できます：";
+        status.textContent = "「" + rawQuery + "」に一致する書籍データは見つかりませんでした。新しいリストとして作成できます：";
     }
 
     var directBtn = document.createElement("button");
     directBtn.type = "button";
     directBtn.className = "book-search-direct";
-    directBtn.textContent = "＋ 「" + rawQuery + "」というオリジナルの本を作成";
+    directBtn.textContent = "＋ 「" + rawQuery + "」というリストを作成";
     directBtn.addEventListener("click", function() {
         registerBookObject("", rawQuery, "", "");
         if (input) input.value = "";
         resultsBox.textContent = "";
-        if (status) status.textContent = "本「" + rawQuery + "」を作成しました";
+        if (status) status.textContent = "リスト「" + rawQuery + "」を作成しました";
     });
     resultsBox.appendChild(directBtn);
 }
@@ -222,7 +222,7 @@ function registerBookObject(isbn, title, author, coverUrl) {
         bookList.push({
             id: targetId,
             isbn: cleanIsbn,
-            title: (title || "").trim() || "無題の書籍",
+            title: (title || "").trim() || "無題のリスト",
             author: (author || "").trim(),
             cover: finalCover,
             order: bookList.length * 10,
@@ -281,8 +281,8 @@ function deleteCurrentBook() {
     }
 
     var msg = count > 0
-        ? "『" + book.title + "』を本棚から削除しますか？\n（この本に登録されている " + count + " 件の単語は「未分類」へ移動して保護されます）"
-        : "『" + book.title + "』を本棚から削除しますか？";
+        ? "『" + book.title + "』を削除しますか？\n（このリストに登録されている " + count + " 件の単語は「未分類」へ移動して保護されます）"
+        : "『" + book.title + "』を削除しますか？";
     if (!confirm(msg)) return;
 
     for (var j = 0; j < wordList.length; j++) {
@@ -590,7 +590,7 @@ function openBookSearchModal() {
 
     var totalBadge = document.getElementById("book-search-total-count");
     if (totalBadge) {
-        totalBadge.textContent = "全" + bookList.length + "冊";
+        totalBadge.textContent = "全" + bookList.length + "件";
     }
 
     var input = document.getElementById("book-search-filter-input");
@@ -679,7 +679,7 @@ function renderBookSearchModalList(filterKeyword) {
         items.push({
             id: "uncategorized",
             title: "未分類",
-            author: "書籍未指定の単語",
+            author: "リスト未指定の単語",
             count: countsByBook.uncategorized || 0,
             color: "#9ca3af",
             isActive: (currentBookTab === "uncategorized")
@@ -709,7 +709,7 @@ function renderBookSearchModalList(filterKeyword) {
     if (items.length === 0) {
         var empty = document.createElement("div");
         empty.className = "book-search-empty";
-        empty.textContent = "一致する本が見つかりません";
+        empty.textContent = "一致するリストが見つかりません";
         container.appendChild(empty);
         return;
     }
@@ -814,7 +814,7 @@ function createCoverElement(book, size) {
     wrap.className = "book-cover-wrap" + (size ? (" is-" + size) : "");
     wrap.setAttribute("role", "button");
     wrap.setAttribute("tabindex", "0");
-    wrap.title = "クリックして書影・表紙カラーを設定";
+    wrap.title = "クリックして表紙・カラーを設定";
 
     if (coverInfo.type === "image") {
         var img = document.createElement("img");
@@ -916,7 +916,7 @@ function renderActiveBookMeta() {
     var pinBtn = document.createElement("button");
     pinBtn.type = "button";
     pinBtn.className = book.pinned ? "btn-book-pin is-pinned" : "btn-book-pin";
-    pinBtn.title = book.pinned ? "ピン留めを解除（元の位置に戻る）" : "この本をピン留め（タブ先頭に固定）";
+    pinBtn.title = book.pinned ? "ピン留めを解除（元の位置に戻る）" : "このリストをピン留め（タブ先頭に固定）";
     pinBtn.appendChild(createSvgPinIcon(12));
     var pinText = document.createTextNode(book.pinned ? " ピン留め中" : " ピン留め");
     pinBtn.appendChild(pinText);
@@ -928,8 +928,8 @@ function renderActiveBookMeta() {
     var coverBtn = document.createElement("button");
     coverBtn.type = "button";
     coverBtn.className = "btn-book-cover";
-    coverBtn.title = "この本の書影・表紙カラーの設定";
-    coverBtn.textContent = "書影・設定";
+    coverBtn.title = "このリストの表紙・カラー設定";
+    coverBtn.textContent = "表紙・設定";
     coverBtn.addEventListener("click", function() {
         openBookCoverModal(book.id);
     });
@@ -948,7 +948,7 @@ function renderActiveBookMeta() {
         moveLeftBtn.type = "button";
         moveLeftBtn.className = "btn-book-move";
         moveLeftBtn.textContent = "← 左へ移動";
-        moveLeftBtn.title = "この本の並び順を1つ左へ移動";
+        moveLeftBtn.title = "このリストの並び順を1つ左へ移動";
         moveLeftBtn.disabled = (bookIdx <= 0);
         moveLeftBtn.addEventListener("click", function() {
             moveBookOrder(book.id, -1);
@@ -959,7 +959,7 @@ function renderActiveBookMeta() {
         moveRightBtn.type = "button";
         moveRightBtn.className = "btn-book-move";
         moveRightBtn.textContent = "右へ移動 →";
-        moveRightBtn.title = "この本の並び順を1つ右へ移動";
+        moveRightBtn.title = "このリストの並び順を1つ右へ移動";
         moveRightBtn.disabled = (bookIdx >= bookList.length - 1);
         moveRightBtn.addEventListener("click", function() {
             moveBookOrder(book.id, 1);
@@ -969,7 +969,7 @@ function renderActiveBookMeta() {
         var delBookBtn = document.createElement("button");
         delBookBtn.type = "button";
         delBookBtn.className = "btn-book-remove";
-        delBookBtn.textContent = "この本を削除";
+        delBookBtn.textContent = "このリストを削除";
         delBookBtn.addEventListener("click", function() {
             deleteCurrentBook();
         });
@@ -1246,7 +1246,7 @@ function saveBookCoverModal() {
     var si = document.getElementById("search-input");
     renderWordCards(si ? si.value : "");
     closeBookCoverModal();
-    showSaveFeedback("『" + book.title + "』の書影を設定しました");
+    showSaveFeedback("『" + book.title + "』の表紙を設定しました");
 }
 
 function showCoverStatusMsg(text, type) {

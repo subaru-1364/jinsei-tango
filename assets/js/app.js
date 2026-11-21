@@ -41,6 +41,7 @@ function enterLocalPreviewMode() {
 
 function refreshUI() {
     syncConfirmToggleUI();
+    syncWordSortUI();
     renderBookTabs();
     renderActiveBookMeta();
 

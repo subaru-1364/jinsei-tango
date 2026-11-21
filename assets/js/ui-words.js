@@ -267,7 +267,7 @@ function addQuickWord(explicitBookId) {
     if (itemsNeedingAutoMeaning.length > 0) {
         showSaveFeedback(feedbackMsg + "・辞書から意味を検索中...", true);
         showQuickAddStatus("辞書から意味を自動取得しています...", "loading");
-        autoFillMeaningsForWords(itemsNeedingAutoMeaning);
+        autoFillMeaningsForWords(itemsNeedingAutoMeaning, { includeNotFoundOnConfirm: true });
     } else {
         showSaveFeedback(feedbackMsg);
         showQuickAddStatus(feedbackMsg, "success", 2500);
@@ -280,36 +280,44 @@ function addQuickWord(explicitBookId) {
 
 // ==================== 辞書意味の自動補完・確認モーダル ====================
 
-function autoFillMeaningsForWords(targetItems) {
+function autoFillMeaningsForWords(targetItems, options) {
     if (!targetItems || targetItems.length === 0) return;
 
+    var opts = options || {};
+    var includeNotFoundOnConfirm = Boolean(opts.includeNotFoundOnConfirm);
+    var confirmEnabled = shouldConfirmAutoMeaning();
     var foundQueue = [];
+    var confirmQueue = [];
     var chain = Promise.resolve();
 
     targetItems.forEach(function(item) {
         chain = chain.then(function() {
             return fetchWordMeaningCandidates(item.word).then(function(candidates) {
-                if (candidates && candidates.length > 0) {
-                    foundQueue.push({
-                        wordId: item.id,
-                        bookId: item.bookId,
-                        word: item.word,
-                        candidates: candidates
-                    });
+                var validCandidates = Array.isArray(candidates) ? candidates : [];
+                var entry = {
+                    wordId: item.id,
+                    bookId: item.bookId,
+                    word: item.word,
+                    candidates: validCandidates
+                };
+                if (validCandidates.length > 0) {
+                    foundQueue.push(entry);
+                    confirmQueue.push(entry);
+                } else if (confirmEnabled && includeNotFoundOnConfirm) {
+                    confirmQueue.push(entry);
                 }
             });
         });
     });
 
     chain.then(function() {
-        if (foundQueue.length === 0) {
-            showSaveFeedback("辞書に一致する意味が見つかりませんでした");
-            showQuickAddStatus("辞書に一致する意味が見つかりませんでした", "error", 3500);
-            return;
-        }
-
-        if (shouldConfirmAutoMeaning()) {
-            openMeaningConfirmQueue(foundQueue, function(confirmedCount) {
+        if (confirmEnabled) {
+            if (confirmQueue.length === 0) {
+                showSaveFeedback("辞書に一致する意味が見つかりませんでした");
+                showQuickAddStatus("辞書に一致する意味が見つかりませんでした", "error", 3500);
+                return;
+            }
+            openMeaningConfirmQueue(confirmQueue, function(confirmedCount) {
                 saveAllData(false);
                 refreshUI();
                 var msg = confirmedCount + " 件の意味を確認・保存しました";
@@ -317,6 +325,11 @@ function autoFillMeaningsForWords(targetItems) {
                 showQuickAddStatus(msg, "success", 3500);
             });
         } else {
+            if (foundQueue.length === 0) {
+                showSaveFeedback("辞書に一致する意味が見つかりませんでした");
+                showQuickAddStatus("辞書に一致する意味が見つかりませんでした", "error", 3500);
+                return;
+            }
             var filledCount = 0;
             foundQueue.forEach(function(entry) {
                 var target = getWordItemById(entry.wordId);
@@ -461,34 +474,6 @@ function resolveMeaningModal(action) {
 
     meaningConfirmIndex++;
     renderCurrentMeaningConfirmModal();
-}
-
-// 一覧ヘッダーの「辞書補完」ボタン（選択中タブまたは全書籍の未設定単語を一括検索）
-function batchFetchMissingMeanings() {
-    var missingItems = wordList.filter(function(item) {
-        if (currentBookTab !== "all_books" && item.bookId !== currentBookTab) {
-            return false;
-        }
-        var hasMeaning = Boolean(item.meaning && item.meaning.trim() !== "");
-        return !hasMeaning && !item.noMeaningNeeded;
-    });
-
-    if (missingItems.length === 0) {
-        var emptyMsg = (currentBookTab === "all_books")
-            ? "意味が未登録の単語はありません"
-            : "この本に意味が未登録の単語はありません";
-        showSaveFeedback(emptyMsg);
-        return;
-    }
-
-    var btn = document.getElementById("batch-dict-btn");
-    if (btn) btn.disabled = true;
-    showSaveFeedback(missingItems.length + " 件の意味を辞書から検索中...", true);
-
-    autoFillMeaningsForWords(missingItems);
-    setTimeout(function() {
-        if (btn) btn.disabled = false;
-    }, 1500);
 }
 
 // カード上の自動取得意味操作
@@ -879,6 +864,9 @@ function renderWordCards(filterKeyword) {
                    item.meaning.toLowerCase().indexOf(keyword) !== -1;
         });
     }
+    if (wordSortOrder === "desc") {
+        displayList = displayList.slice().reverse();
+    }
 
     if (filteredCountElem) {
         filteredCountElem.textContent = displayList.length + " 件";
@@ -896,7 +884,7 @@ function renderWordCards(filterKeyword) {
         if (filterKeyword && filterKeyword.trim() !== "") {
             emptyDiv.textContent = "「" + filterKeyword + "」に一致する単語は見つかりませんでした";
         } else {
-            emptyDiv.appendChild(document.createTextNode("この本にはまだ単語が登録されていません。"));
+            emptyDiv.appendChild(document.createTextNode("このリストにはまだ単語が登録されていません。"));
             emptyDiv.appendChild(document.createElement("br"));
             var addBtn = document.createElement("button");
             addBtn.type = "button";
@@ -1046,6 +1034,19 @@ function deleteWordItem(item) {
 
 function handleSearch() {
     listPageIndex = 0;
+    var searchInput = document.getElementById("search-input");
+    renderWordCards(searchInput ? searchInput.value : "");
+}
+
+function setWordSortOrder(order) {
+    var nextOrder = (order === "desc") ? "desc" : "asc";
+    if (wordSortOrder === nextOrder) return;
+    wordSortOrder = nextOrder;
+    try {
+        localStorage.setItem("kuji_word_sort_order", wordSortOrder);
+    } catch (e) {}
+    listPageIndex = 0;
+    syncWordSortUI();
     var searchInput = document.getElementById("search-input");
     renderWordCards(searchInput ? searchInput.value : "");
 }
